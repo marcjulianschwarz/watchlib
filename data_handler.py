@@ -17,21 +17,32 @@ class DataLoader:
 
         records = root.findall('Record')
 
-        d = {}
+        data = {}
 
         for x in records:
-            d[x.get("type")] = []
-
+            data[x.get("type")] = []
+        
         for record in records:
-            d[record.get("type")].append(record.get("value"))
+            key = record.get("type")
+            value = record.get("value")
+            time = record.get("creationDate")
+            data[record.get("type")].append((time, value))
 
-        return d
+        for key in data.keys():
+            data[key] = pd.DataFrame(data[key], columns=["time", "value"])
+
+        return data
 
 
-    def get_ecgs(self):
-        ecgs = [pd.read_csv(self.ecg_path + filename) for filename in os.listdir(self.ecg_path)]
-        print(f"Loaded {len(ecgs)} electrocardiograms.")
-        return ecgs
+    # ECG
+    def load_ecgs(self):
+        files = os.listdir(self.ecg_path)
+        print(f"Loading {len(files)} electrocardiograms.")
+        return [pd.read_csv(self.ecg_path + filename) for filename in files]
+
+
+    def load_ecg(self, ecg_name):
+        return pd.read_csv(self.ecg_path + ecg_name)
 
     def read_ecg(self, ecg: pd.DataFrame):
 
@@ -46,14 +57,20 @@ class DataLoader:
 
         return meta_data, data
 
-    def __get_workout_route_root(self, route: str) -> ET.Element:
-        
-        tree = ET.parse(open(self.workout_path + route))
-        return tree.getroot()
+
+    # Workout Routes
+
+    def load_workout_routes(self):
+        files = os.listdir(self.workout_path)
+        print(f"Loading {len(files)} workout routes.")
+        return [ET.parse(open(self.workout_path + filename)).getroot() for filename in files]
+
+    def load_workout_route(self, route):
+        return ET.parse(open(self.workout_path + route)).getroot()
+
 
     def read_workout_route(self, route) -> pd.DataFrame:
         
-        route = self.__get_workout_route_root(route)
         ns = {"gpx": "http://www.topografix.com/GPX/1/1"}
         tracks = route.findall('gpx:trk', ns)
 
@@ -95,7 +112,3 @@ class DataLoader:
                     data["vAcc"].append(float(vAcc))
 
         return pd.DataFrame(data)
-
-    def get_routes(self):
-
-        return [ET.parse(open(self.workout_path + filename)) for filename in os.listdir(self.workout_path)]
