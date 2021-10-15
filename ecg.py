@@ -1,6 +1,5 @@
 import matplotlib.pyplot as plt
 import numpy as np
-import seaborn as sns
 
 def plot_ecg(ecg_data, meta_data=None):
 
@@ -14,7 +13,3 @@ def plot_ecg(ecg_data, meta_data=None):
         plt.title("Date: " + meta_data["Aufzeichnungsdatum"] + "     Classification: " + meta_data["Klassifizierung"])
 
     plt.show()
-
-
-def box(data):
-    sns.boxplot(np.array(data["HKQuantityTypeIdentifierHeartRate"]).astype("float"))
