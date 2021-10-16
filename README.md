@@ -18,8 +18,15 @@ To use this Python package you first have to export the health data:
 8. Choose a folder and tap "Save"
 9. Last step is to unzip the "Export.zip" file
 
-
 ## Demos
 - [DataLoader Demo]()
 - [Workout Route Demo]()
 - [Electrocardiogram Demo]()
+
+## Workout
+
+![animation1634391134 250754](https://user-images.githubusercontent.com/67844154/137590383-b759f12b-6a50-422c-b029-9c0c24505e66.gif)
+
+
+
+
