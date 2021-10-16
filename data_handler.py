@@ -59,14 +59,19 @@ class DataLoader:
 
 
     # Workout Routes
-
     def load_workout_routes(self):
-        files = os.listdir(self.workout_path)
-        print(f"Loading {len(files)} workout routes.")
-        return [ET.parse(open(self.workout_path + filename)).getroot() for filename in files]
+
+        filenames =  os.listdir(self.workout_path)
+        print(f"Loading {len(filenames)} workout routes.")
+        routes = []
+        for filename in filenames:
+            with open(self.workout_path + filename) as f:
+                routes.append(ET.parse(f).getroot())
+        return routes
 
     def load_workout_route(self, route):
-        return ET.parse(open(self.workout_path + route)).getroot()
+        with open(self.workout_path + route) as file:
+            return ET.parse(file).getroot()
 
 
     def read_workout_route(self, route) -> pd.DataFrame:
