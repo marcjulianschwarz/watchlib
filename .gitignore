@@ -133,3 +133,4 @@ data/apple_health_export
 .DS_Store
 *.zip
 demo.ipynb
+animations/
