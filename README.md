@@ -25,6 +25,20 @@ To use this Python package you first have to export the health data:
 
 ## Workout
 
+3D plot for one workout or rotating animation.
+```
+workout_three_d: 
+    (
+        workout_route: DataFrame, 
+        color_on: str = "elevation", 
+        resolution=0.5, 
+        save_animation: bool = False, 
+        path: str = "animations/", 
+        format: str = "gif"
+    ) -> None
+```
+
+
 ![animation1634391134 250754](https://user-images.githubusercontent.com/67844154/137590383-b759f12b-6a50-422c-b029-9c0c24505e66.gif)
 
 
