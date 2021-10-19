@@ -1,9 +1,11 @@
 import xml.etree.ElementTree as ET
 import pandas as pd
 import os
+from typing import List, Tuple
+
 
 class DataLoader:
-    
+
     def __init__(self, path: str) -> None:
         self.path = path
         self.export_path = path + "/Export.xml"
@@ -21,7 +23,7 @@ class DataLoader:
 
         for x in records:
             data[x.get("type")] = []
-        
+
         for record in records:
             key = record.get("type")
             value = record.get("value")
@@ -33,21 +35,22 @@ class DataLoader:
 
         return data
 
-
     # ECG
-    def load_ecgs(self):
+
+    def load_ecgs(self) -> List[pd.DataFrame]:
         files = os.listdir(self.ecg_path)
         print(f"Loading {len(files)} electrocardiograms.")
         return [pd.read_csv(self.ecg_path + filename) for filename in files]
 
-
-    def load_ecg(self, ecg_name):
+    def load_ecg(self, ecg_name: str) -> pd.DataFrame:
         return pd.read_csv(self.ecg_path + ecg_name)
 
-    def read_ecg(self, ecg: pd.DataFrame):
+    def read_ecg(self, ecg: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame]:
 
         name = ecg.columns[1]
-        ecg = ecg.rename(columns = {ecg.columns[0]: "name", ecg.columns[1]: "value"})
+        ecg = ecg.rename(columns={
+                ecg.columns[0]: "name",
+                ecg.columns[1]: "value"})
 
         meta_data = ecg.iloc[:9]
         meta_data = dict(zip(meta_data.name, meta_data.value))
@@ -57,11 +60,11 @@ class DataLoader:
 
         return meta_data, data
 
-
     # Workout Routes
-    def load_workout_routes(self):
 
-        filenames =  os.listdir(self.workout_path)
+    def load_workout_routes(self) -> List[ET.Element]:
+
+        filenames = os.listdir(self.workout_path)
         print(f"Loading {len(filenames)} workout routes.")
         routes = []
         for filename in filenames:
@@ -69,13 +72,12 @@ class DataLoader:
                 routes.append(ET.parse(f).getroot())
         return routes
 
-    def load_workout_route(self, route):
+    def load_workout_route(self, route: str) -> ET.Element:
         with open(self.workout_path + route) as file:
             return ET.parse(file).getroot()
 
+    def read_workout_route(self, route: ET.Element) -> pd.DataFrame:
 
-    def read_workout_route(self, route) -> pd.DataFrame:
-        
         ns = {"gpx": "http://www.topografix.com/GPX/1/1"}
         tracks = route.findall('gpx:trk', ns)
 
@@ -95,7 +97,7 @@ class DataLoader:
             for track_segment in track_segments:
                 track_points = track_segment.findall('gpx:trkpt', ns)
                 for track_point in track_points:
-                    
+
                     elevation = track_point.findall('gpx:ele', ns)[0].text
                     time = track_point.findall('gpx:time', ns)[0].text
                     extension = track_point.findall('gpx:extensions', ns)[0]

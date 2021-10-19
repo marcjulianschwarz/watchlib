@@ -5,8 +5,9 @@ from mpl_toolkits.mplot3d.art3d import Line3DCollection
 from matplotlib import animation
 from datetime import datetime as dt
 
+
 # https://stackoverflow.com/questions/16266809/convert-from-latitude-longitude-to-x-y
-# 
+
 def project_to_xy(lon, lat):
 
     middle_of_map_lat = np.mean(lat)
@@ -14,7 +15,17 @@ def project_to_xy(lon, lat):
     return lon, lat
 
 
-def workout_three_d(workout_route, color_on:str="elevation", resolution=0.5, save_animation:bool=False, path:str="animations/", format:str="gif"):
+def workout_three_d(
+        workout_route: pd.DataFrame,
+        color_on: str = "elevation",
+        resolution=0.5,
+        save_animation: bool = False,
+        path: str = "animations/",
+        format: str = "gif"):
+
+    if workout_route.empty:
+        print("No data available for this route")
+        return
 
     title = pd.to_datetime(workout_route["time"].iloc[0]).date()
     strip = int(1 / resolution)
@@ -32,7 +43,7 @@ def workout_three_d(workout_route, color_on:str="elevation", resolution=0.5, sav
     norm = plt.Normalize(s.min(), s.max())
     lc = Line3DCollection(segments, cmap="viridis", norm=norm)
     lc.set_array(s)
-    line = ax.add_collection3d(lc, zs=elevation, zdir="z")
+    # line = ax.add_collection3d(lc, zs=elevation, zdir="z")
 
     ax.set_xlim(x.min(), x.max())
     ax.set_ylim(y.min(), y.max())
