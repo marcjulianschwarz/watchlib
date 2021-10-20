@@ -25,7 +25,11 @@ To use this Python package you first have to export the health data:
 - [Electrocardiogram Demo](https://github.com/marcjulianschwarz/watchlib/blob/main/demos/03%20-%20Electrocardiogram.ipynb)
 
 
+## Static Workout Route Animation
 ![animation1634391134 250754](https://user-images.githubusercontent.com/67844154/137590383-b759f12b-6a50-422c-b029-9c0c24505e66.gif)
+
+## Walking Workout Route Animation
+![animation_test](https://user-images.githubusercontent.com/67844154/138136647-042bfa0e-4d3e-448e-b42d-d40fe52fab55.gif)
 
 
 
