@@ -1,6 +1,6 @@
 # apple-health-analyser
 Python module which helps analyzing apple health data.
-Feature:
+### Features:
 - Data loader
 - Data plotting
 - Data analysis
