@@ -1,9 +1,10 @@
-# apple-health-analyser
-Python module which helps analyzing apple health data.
+# watchlib
+*watchlib* is a python library for analyzing and visualizing Apple Watch health data.
+
 ### Features:
 - Data loader
-- Data plotting
-- Data analysis
+- Plotting
+- Animation
 
 ## Get data from health export
 To use this Python package you first have to export the health data:
@@ -19,24 +20,9 @@ To use this Python package you first have to export the health data:
 9. Last step is to unzip the "Export.zip" file
 
 ## Demos
-- [DataLoader Demo]()
-- [Workout Route Demo]()
-- [Electrocardiogram Demo]()
-
-## Workout
-
-3D plot for one workout or rotating animation.
-```
-workout_three_d: 
-    (
-        workout_route: DataFrame, 
-        color_on: str = "elevation", 
-        resolution=0.5, 
-        save_animation: bool = False, 
-        path: str = "animations/", 
-        format: str = "gif"
-    ) -> None
-```
+- [DataLoader Demo](https://github.com/marcjulianschwarz/watchlib/blob/main/demos/01%20-%20DataLoader.ipynb)
+- [Workout Route Demo](https://github.com/marcjulianschwarz/watchlib/blob/main/demos/02%20-%20Workout%20Route.ipynb)
+- [Electrocardiogram Demo](https://github.com/marcjulianschwarz/watchlib/blob/main/demos/03%20-%20Electrocardiogram.ipynb)
 
 
 ![animation1634391134 250754](https://user-images.githubusercontent.com/67844154/137590383-b759f12b-6a50-422c-b029-9c0c24505e66.gif)
