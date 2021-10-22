@@ -1,7 +1,8 @@
 import xml.etree.ElementTree as ET
 import pandas as pd
 import os
-from typing import List, Tuple
+from typing import List, Tuple, Dict
+import numpy as np
 
 
 class DataLoader:
@@ -70,11 +71,27 @@ class DataLoader:
         for filename in filenames:
             with open(self.workout_path + filename) as f:
                 routes.append(ET.parse(f).getroot())
-        return routes
+        
+        return dict(zip(filenames, routes))
 
-    def load_workout_route(self, route: str) -> ET.Element:
-        with open(self.workout_path + route) as file:
-            return ET.parse(file).getroot()
+    def load_workout_route(self, date: str) -> ET.Element:
+
+        filenames = np.array(os.listdir(self.workout_path))
+        routes = []
+        route_roots = []
+        for filename in filenames:
+            if ("route_" + date) in filename:
+                routes.append(filename)
+
+        for route in routes:
+            print(route)
+            with open(self.workout_path + route) as file:
+                route_roots.append(ET.parse(file).getroot())
+        
+        if len(route_roots) == 1:
+            return route_roots[0]
+        else:
+            return route_roots
 
     def read_workout_route(self, route: ET.Element) -> pd.DataFrame:
 
@@ -119,3 +136,46 @@ class DataLoader:
                     data["vAcc"].append(float(vAcc))
 
         return pd.DataFrame(data)
+
+    def read_workout_routes(self, routes: Dict[str, ET.Element]) -> Dict[str, pd.DataFrame]:
+        data = [self.read_workout_route(route) for route in routes.values()]
+        return dict(zip(routes.keys(), data))
+
+    # CSV saving and loading
+    def save_workout_route_to_csv(self, data: pd.DataFrame, path: str, filename: str):
+        data.to_csv(path + filename)
+
+    def save_workout_routes_to_csv(self, data: Dict[str, pd.DataFrame], path: str):
+        for key in data:
+            self.save_workout_route_to_csv(data[key], path, key)
+    
+    def load_workout_route_from_csv(self, path):
+        return pd.read_csv(path)
+
+    def load_workout_routes_from_csv(self, path: str) -> Dict[str, pd.DataFrame]:
+        data = {}
+        for filename in os.listdir(path):
+            data[filename] = self.load_workout_route_from_csv(path + filename)
+        return data
+
+    # Filtering routes
+    def filter_routes(self, routes, bbox=[(5.98865807458, 47.3024876979), (15.0169958839, 54.983104153)]):
+        
+        """
+            routes: routes that should be filtered
+            bbox: [(min_lon, min_lat), (max_lon, max_lat)]
+        """
+
+        min_lon, min_lat = bbox[0]
+        max_lon, max_lat = bbox[1]
+
+        filtered_routes = []
+        for route in routes:
+            if (route["lon"].min() > min_lon) and (route["lon"].max() < max_lon):
+                if (route["lat"] > min_lat) and (route["lat"] < max_lat):
+                    filtered_routes.append(route)
+        
+        return filtered_routes
+
+    def filter_small_routes(self, routes, tolerance):
+        raise NotImplementedError
