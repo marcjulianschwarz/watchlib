@@ -1,2 +1,2 @@
 from watchlib.animation import *
-from watchlib.data_handlers import *
+from watchlib.data_handler import *
