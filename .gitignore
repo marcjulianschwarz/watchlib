@@ -134,3 +134,6 @@ data/apple_health_export
 *.zip
 demo.ipynb
 animations/
+data/cached_routes/
+.vscode/
+data/
