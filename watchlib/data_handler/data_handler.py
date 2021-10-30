@@ -38,10 +38,10 @@ class DataLoader:
 
     # ECG
 
-    def load_ecgs(self) -> List[pd.DataFrame]:
+    def load_ecgs(self) -> Dict[str, pd.DataFrame]:
         files = os.listdir(self.ecg_path)
         print(f"Loading {len(files)} electrocardiograms.")
-        return [pd.read_csv(self.ecg_path + filename) for filename in files]
+        return dict(zip(files, [pd.read_csv(self.ecg_path + filename) for filename in files]))
 
     def load_ecg(self, ecg_name: str) -> pd.DataFrame:
         return pd.read_csv(self.ecg_path + ecg_name)
@@ -60,6 +60,10 @@ class DataLoader:
         data = ecg[9:].dropna().astype("int32")
 
         return meta_data, data
+
+    def read_ecgs(self, ecgs: Dict[str, pd.DataFrame]) -> Dict[str, Tuple[pd.DataFrame, pd.DataFrame]]:
+        return dict(zip(ecgs.keys(), [self.read_ecg(ecg) for ecg in ecgs.values()]))
+
 
     # Workout Routes
 
@@ -155,7 +159,7 @@ class DataLoader:
     def load_workout_routes_from_csv(self, path: str) -> Dict[str, pd.DataFrame]:
         data = {}
         for filename in os.listdir(path):
-            data[filename] = self.load_workout_route_from_csv(path + filename)
+            data[filename] = self.load_workout_route_from_csv(path + "/" + filename)
         return data
 
     # Filtering routes
