@@ -13,11 +13,8 @@ class HealthAnimation(ABC):
 
     resolution: float = 0.08
     color_on: str = "elevation"
-    path: str = "animations/"
+
     interval: int = 10
-    format: str = "mp4"
-    fps: int = 100
-    dpi: int = 80
     fig_size = (5, 5)
     data: pd.DataFrame = None
     meta_data: pd.DataFrame = None
@@ -30,36 +27,21 @@ class HealthAnimation(ABC):
         for option in options:
             raise NotImplementedError
 
-    def set_path(self, path: str):
-        self.path = path
-
     def set_interval(self, interval: int):
         self.interval = interval
 
-    def set_format(self, format: str):
-        self.format = format
-
-    def set_fps(self, fps: int):
-        self.fps = fps
-
-    def set_dpi(self, dpi: int):
-        self.dpi = dpi
-
     def set_fig_size(self, shape: Tuple[int, int]):
         self.fig_size = shape
+
+    def set_color_on(self, color_on: str):
+        self.color_on = color_on
+    
+    def set_resolution(self, resolution: int):
+        self.resolution = resolution
     
     @abstractmethod
     def animate(self):
         pass
-    
-    @abstractmethod
-    def render(self):
-        pass
-
-    def save(self, animation, path=None):
-        if path:
-            self.path = path
-        animation.save(self.path + "animation_test" + "." + self.format, fps=self.fps, dpi=self.dpi)
 
 
 class WorkoutAnimation(HealthAnimation):
@@ -109,9 +91,7 @@ class WorkoutAnimation(HealthAnimation):
         ax.set_zlabel("Elevation")
 
         ax.text2D(0.05, 0.95, "Color:" + self.color_on, transform=ax.transAxes)
-
         plt.title(title)
-        plt.show()
 
         return fig, ax, lc, segments
 
@@ -132,12 +112,6 @@ class WorkoutAnimation(HealthAnimation):
         
         anim = animation.FuncAnimation(fig, update, init_func=init, frames=len(segments), interval=self.interval, blit=True)
         return anim
-
-    def render(self, animation_type: str):
-        if animation_type == "walk_route":
-            return self.animate(False)
-        elif animation_type == "walk_route_animation":
-            return self.animate(True)
 
 
 class ECGAnimation(HealthAnimation):
@@ -165,9 +139,4 @@ class ECGAnimation(HealthAnimation):
 
         def update(i):
             return [fig]
-
-
-    def render(self):
-        return self.animate()
-
     
