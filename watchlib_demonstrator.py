@@ -2,7 +2,7 @@ from attr import s
 import streamlit as st
 import streamlit.components.v1 as components
 from watchlib.animation import WorkoutAnimation, ECGAnimation
-from watchlib.data_handler import DataLoader
+from watchlib.data_handler import DataLoader, BBoxFilter
 import random
 
 def start():
@@ -17,19 +17,28 @@ def start():
     
     st.sidebar.write("## Workout Route Data")
 
-    if "routes" not in st.session_state:
+    if "all_routes" not in st.session_state:
         if st.sidebar.button("Load workout data"):
-                routes = dl.load_workout_routes_from_csv("/Users/macbookpro/Documents/Code/watchlib/data/cached_routes")
-                st.session_state.routes = routes
+                routes = dl.load_cached_routes()
+                st.session_state.all_routes = routes
                 st.sidebar.success(str(len(routes.keys())) + " routes have been loaded.")
 
     def set_selected_route():
-        st.session_state.selecte_route = st.session_state.routes[st.session_state.route_option]
+        st.session_state.selected_route = st.session_state.all_routes[st.session_state.route_option]
 
-    if "routes" in st.session_state:
-        sx = st.sidebar.selectbox('Select a route', (st.session_state.routes.keys()), key="route_option", on_change=set_selected_route)     
-        route = st.session_state.routes[st.session_state.route_option]
-        st.session_state.selected_route = route
+    def set_selected_country():
+        st.session_state.bbox = BBoxFilter.countries[st.session_state.country_option]
+
+    if "all_routes" in st.session_state:
+
+        st.sidebar.selectbox("Select a country", (BBoxFilter.countries.keys()), key="country_option", on_change=set_selected_country)
+        st.session_state.bbox = BBoxFilter.countries[st.session_state.country_option]
+        if "bbox" in st.session_state:
+            b_filter = BBoxFilter(st.session_state.bbox)
+            st.session_state.filtered_routes = b_filter.filter(st.session_state.all_routes)
+            st.sidebar.selectbox('Select a route', (st.session_state.filtered_routes.keys()), key="route_option", on_change=set_selected_route)     
+            route = st.session_state.all_routes[st.session_state.route_option]
+            st.session_state.selected_route = route
 
 
     st.sidebar.write("## ECG Data")
@@ -48,7 +57,7 @@ def start():
         st.session_state.selected_ecg = ecg
 
 
-    if "routes" in st.session_state:
+    if "selected_route" in st.session_state:
         st.write("## Workout Animation")
         if st.button("Start workout animation"):
             if st.session_state.selected_route is None:
@@ -56,8 +65,6 @@ def start():
             else:
                 with st.spinner("Rendering workout route..."):
                     wa = WorkoutAnimation(st.session_state.selected_route)
-                    wa.set_dpi(80)
-                    wa.set_interval(20)
                     wa.set_fig_size(shape=(6,6))
                     ani = wa.animate()
                     components.html(ani.to_jshtml(), height=1000)
@@ -68,7 +75,7 @@ def start():
             if st.session_state.selected_ecg is None:
                     st.error("Please specify a health path in the sidebar first.")
             else:
-                meta_data, data = st.session_state.selected_ecg
+                data, meta_data = st.session_state.selected_ecg
                 ew = ECGAnimation(data, meta_data)
                 fig, ax = ew.plot_ecg()
                 st.write(fig)

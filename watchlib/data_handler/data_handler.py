@@ -10,8 +10,9 @@ class DataLoader:
     def __init__(self, path: str) -> None:
         self.path = path
         self.export_path = path + "/Export.xml"
-        self.ecg_path = path + "/electrocardiograms/"
-        self.workout_path = path + "/workout-routes/"
+        self.ecg_path = path + "/electrocardiograms"
+        self.workout_path = path + "/workout-routes"
+        self.cached_routes_path = self.workout_path + "/cached_routes"
 
     def get_export_data(self) -> dict:
 
@@ -38,16 +39,15 @@ class DataLoader:
 
     # ECG
 
+    def load_ecg(self, ecg_name: str) -> pd.DataFrame:
+        return pd.read_csv(self.ecg_path + "/" + ecg_name)
+
     def load_ecgs(self) -> Dict[str, pd.DataFrame]:
         files = os.listdir(self.ecg_path)
         print(f"Loading {len(files)} electrocardiograms.")
-        return dict(zip(files, [pd.read_csv(self.ecg_path + filename) for filename in files]))
-
-    def load_ecg(self, ecg_name: str) -> pd.DataFrame:
-        return pd.read_csv(self.ecg_path + ecg_name)
+        return dict(zip(files, [self.load_ecg(filename) for filename in files]))
 
     def read_ecg(self, ecg: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame]:
-
         name = ecg.columns[1]
         ecg = ecg.rename(columns={
                 ecg.columns[0]: "name",
@@ -59,26 +59,26 @@ class DataLoader:
 
         data = ecg[9:].dropna().astype("int32")
 
-        return meta_data, data
+        return data, meta_data
 
     def read_ecgs(self, ecgs: Dict[str, pd.DataFrame]) -> Dict[str, Tuple[pd.DataFrame, pd.DataFrame]]:
         return dict(zip(ecgs.keys(), [self.read_ecg(ecg) for ecg in ecgs.values()]))
 
 
     # Workout Routes
-
-    def load_workout_routes(self) -> List[ET.Element]:
+    def load_routes(self) -> List[ET.Element]:
 
         filenames = os.listdir(self.workout_path)
+        filenames = [filename for filename in filenames if os.path.isfile(os.path.join(self.workout_path, filename))]
         print(f"Loading {len(filenames)} workout routes.")
         routes = []
         for filename in filenames:
-            with open(self.workout_path + filename) as f:
+            with open(self.workout_path + "/" + filename) as f:
                 routes.append(ET.parse(f).getroot())
         
         return dict(zip(filenames, routes))
 
-    def load_workout_route(self, date: str) -> ET.Element:
+    def load_route(self, date: str) -> ET.Element:
 
         filenames = np.array(os.listdir(self.workout_path))
         routes = []
@@ -88,8 +88,7 @@ class DataLoader:
                 routes.append(filename)
 
         for route in routes:
-            print(route)
-            with open(self.workout_path + route) as file:
+            with open(self.workout_path + "/" + route) as file:
                 route_roots.append(ET.parse(file).getroot())
         
         if len(route_roots) == 1:
@@ -97,7 +96,7 @@ class DataLoader:
         else:
             return route_roots
 
-    def read_workout_route(self, route: ET.Element) -> pd.DataFrame:
+    def read_route(self, route: ET.Element) -> pd.DataFrame:
 
         ns = {"gpx": "http://www.topografix.com/GPX/1/1"}
         tracks = route.findall('gpx:trk', ns)
@@ -141,44 +140,73 @@ class DataLoader:
 
         return pd.DataFrame(data)
 
-    def read_workout_routes(self, routes: Dict[str, ET.Element]) -> Dict[str, pd.DataFrame]:
-        data = [self.read_workout_route(route) for route in routes.values()]
+    def read_routes(self, routes: Dict[str, ET.Element]) -> Dict[str, pd.DataFrame]:
+        data = [self.read_route(route) for route in routes.values()]
         return dict(zip(routes.keys(), data))
 
     # CSV saving and loading
-    def save_workout_route_to_csv(self, data: pd.DataFrame, path: str, filename: str):
-        data.to_csv(path + filename)
+    def cache_route(self, data: pd.DataFrame, filename: str):
+        if not os.path.exists(self.cached_routes_path):
+            os.mkdir(self.cached_routes_path)
+        data.to_csv(self.cached_routes_path + "/" + filename)
 
-    def save_workout_routes_to_csv(self, data: Dict[str, pd.DataFrame], path: str):
+    def cache_routes(self, data: Dict[str, pd.DataFrame]):
         for key in data:
-            self.save_workout_route_to_csv(data[key], path, key)
+            self.cache_route(data[key], key)
     
-    def load_workout_route_from_csv(self, path):
+    def load_cached_route(self, path):
         return pd.read_csv(path)
 
-    def load_workout_routes_from_csv(self, path: str) -> Dict[str, pd.DataFrame]:
+    def load_cached_routes(self) -> Dict[str, pd.DataFrame]:
         data = {}
-        for filename in os.listdir(path):
-            data[filename] = self.load_workout_route_from_csv(path + "/" + filename)
+        for filename in os.listdir(self.cached_routes_path):
+            data[filename] = self.load_cached_route(self.cached_routes_path + "/" + filename)
         return data
 
-    # Filtering routes
-    def filter_routes(self, routes, bbox=[(5.98865807458, 47.3024876979), (15.0169958839, 54.983104153)]):
+
+class BBox:
+
+    min_lon: float
+    min_lat: float
+    max_lon: float
+    max_lat: float
+
+    def __init__(self, min_lon, min_lat, max_lon, max_lat):
+        self.min_lon = min_lon
+        self.min_lat = min_lat
+        self.max_lon = max_lon
+        self.max_lat = max_lat
+
+    def get_values(self):
+        return self.min_lon, self.min_lat, self.max_lon, self.max_lat
+
+
+class BBoxFilter:
+
+    bbox: BBox
+    countries: Dict[str, BBox] = {
+        "Italy": BBox(6.75, 36.62, 18.48, 47.12),
+        "Germany": BBox(5.98865807458, 47.3024876979, 15.0169958839, 54.983104153),
+        "Austria": BBox(9.48, 46.43, 16.98, 49.04)
+    }
+
+    def __init__(self, bbox: BBox):
+        self.bbox = bbox
+
+    def filter(self, routes: Dict[str, pd.DataFrame]):
         
         """
             routes: routes that should be filtered
-            bbox: [(min_lon, min_lat), (max_lon, max_lat)]
         """
 
-        min_lon, min_lat = bbox[0]
-        max_lon, max_lat = bbox[1]
+        min_lon, min_lat, max_lon, max_lat = self.bbox.get_values()
 
-        filtered_routes = []
-        for route in routes:
-            if (route["lon"].min() > min_lon) and (route["lon"].max() < max_lon):
-                if (route["lat"] > min_lat) and (route["lat"] < max_lat):
-                    filtered_routes.append(route)
-        
+        filtered_routes = {}
+        for key in routes:
+            route = routes[key]
+            if (route["lon"].min() >= min_lon) and (route["lon"].max() <= max_lon):
+                if (route["lat"].min() >= min_lat) and (route["lat"].max() <= max_lat):
+                    filtered_routes[key] = route
         return filtered_routes
 
     def filter_small_routes(self, routes, tolerance):
