@@ -1,24 +1,30 @@
 import matplotlib.pyplot as plt
+import matplotlib
+matplotlib.rcParams['animation.embed_limit'] = 2**128
 import numpy as np
 import pandas as pd
 from mpl_toolkits.mplot3d.art3d import Line3DCollection
 from matplotlib import animation
 from datetime import datetime as dt
 from typing import Tuple
+from abc import ABC, abstractmethod
 
-class WorkoutAnimation:
-    
+class HealthAnimation(ABC):
+
     resolution: float = 0.08
     color_on: str = "elevation"
-
     path: str = "animations/"
-    interval: int = 20
+    interval: int = 10
     format: str = "mp4"
-    fps: int = 120
+    fps: int = 100
     dpi: int = 80
-    
-    def __init__(self, workout_route):
-        self.workout_route = workout_route
+    fig_size = (5, 5)
+    data: pd.DataFrame = None
+    meta_data: pd.DataFrame = None
+
+    def __init__(self, data, meta_data=None):
+        self.data = data
+        self.meta_data = meta_data
 
     def set_options(self, options):
         for option in options:
@@ -30,11 +36,33 @@ class WorkoutAnimation:
     def set_interval(self, interval: int):
         self.interval = interval
 
+    def set_format(self, format: str):
+        self.format = format
+
     def set_fps(self, fps: int):
         self.fps = fps
 
     def set_dpi(self, dpi: int):
         self.dpi = dpi
+
+    def set_fig_size(self, shape: Tuple[int, int]):
+        self.fig_size = shape
+    
+    @abstractmethod
+    def animate(self):
+        pass
+    
+    @abstractmethod
+    def render(self):
+        pass
+
+    def save(self, animation, path=None):
+        if path:
+            self.path = path
+        animation.save(self.path + "animation_test" + "." + self.format, fps=self.fps, dpi=self.dpi)
+
+
+class WorkoutAnimation(HealthAnimation):
 
     # Project latitude and longitude to x and y coordinate
     def project_to_xy(self, lon: float, lat: float) -> Tuple[float, float]:
@@ -49,11 +77,11 @@ class WorkoutAnimation:
         return segments
 
     def data_for_plotting(self) -> Tuple[pd.DataFrame]:
-        title = pd.to_datetime(self.workout_route["time"].iloc[0]).date()
+        title = pd.to_datetime(self.data["time"].iloc[0]).date()
         strip = int(1 / self.resolution)
-        x, y = self.project_to_xy(self.workout_route["lon"], self.workout_route["lat"])
-        elevation = self.workout_route["elevation"]
-        s = self.workout_route[self.color_on]
+        x, y = self.project_to_xy(self.data["lon"], self.data["lat"])
+        elevation = self.data["elevation"]
+        s = self.data[self.color_on]
 
         x, y, elevation, s = (x[::strip], y[::strip], elevation[::strip], s[::strip])
 
@@ -63,7 +91,7 @@ class WorkoutAnimation:
     def plot_route(self):
         x, y, elevation, s, title = self.data_for_plotting()
 
-        fig = plt.figure(figsize=(8,8))
+        fig = plt.figure(figsize=self.fig_size)
         ax = fig.add_subplot(111, projection='3d')
 
         segments = self.calculate_segments(x, y, elevation)
@@ -88,7 +116,7 @@ class WorkoutAnimation:
         return fig, ax, lc, segments
 
 
-    def walk_route_animation(self, rotation: bool = True):
+    def animate(self, rotation: bool = True):
 
         fig, ax, lc, segments = self.plot_route()
 
@@ -96,20 +124,50 @@ class WorkoutAnimation:
             ax.view_init(10, 0)
             return [fig]
 
-        def update_route(i):
+        def update(i):
             lc.set_segments(segments[:i])
             if rotation:
                 ax.view_init(10, i/5)
             return [fig]
         
-        anim = animation.FuncAnimation(fig, update_route, init_func=init, frames=len(segments), interval=self.interval, blit=True)
+        anim = animation.FuncAnimation(fig, update, init_func=init, frames=len(segments), interval=self.interval, blit=True)
         return anim
 
     def render(self, animation_type: str):
         if animation_type == "walk_route":
-            return self.walk_route_animation(False)
+            return self.animate(False)
         elif animation_type == "walk_route_animation":
-            return self.walk_route_animation(True)
+            return self.animate(True)
 
-    def save(self, anim, path):
-        anim.save(self.path + "animation_test" + "." + self.format, fps=self.fps, dpi=self.dpi)
+
+class ECGAnimation(HealthAnimation):
+
+    def plot_ecg(self):
+
+        y = self.data["name"]
+        x = np.linspace(0, 1, len(y))
+
+        fig, ax = plt.subplots(figsize=(40,5))
+        
+        ax.plot(x, y)
+
+        if self.meta_data:
+            plt.title("Date: " + self.meta_data["Aufzeichnungsdatum"] + "     Classification: " + self.meta_data["Klassifizierung"])
+
+        return fig, ax
+
+    def animate(self):
+
+        fig, ax = self.plot_ecg()
+
+        def init():
+            return [fig]
+
+        def update(i):
+            return [fig]
+
+
+    def render(self):
+        return self.animate()
+
+    
