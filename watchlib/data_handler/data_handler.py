@@ -3,6 +3,7 @@ import pandas as pd
 import os
 from typing import List, Tuple, Dict
 import numpy as np
+from watchlib.utils import ECG
 
 
 class DataLoader:
@@ -47,19 +48,7 @@ class DataLoader:
         print(f"Loading {len(files)} electrocardiograms.")
         return dict(zip(files, [self.load_ecg(filename) for filename in files]))
 
-    def read_ecg(self, ecg: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame]:
-        name = ecg.columns[1]
-        ecg = ecg.rename(columns={
-                ecg.columns[0]: "name",
-                ecg.columns[1]: "value"})
-
-        meta_data = ecg.iloc[:9]
-        meta_data = dict(zip(meta_data.name, meta_data.value))
-        meta_data["name"] = name
-
-        data = ecg[9:].dropna().astype("int32")
-
-        return data, meta_data
+    
 
     def read_ecgs(self, ecgs: Dict[str, pd.DataFrame]) -> Dict[str, Tuple[pd.DataFrame, pd.DataFrame]]:
         return dict(zip(ecgs.keys(), [self.read_ecg(ecg) for ecg in ecgs.values()]))
