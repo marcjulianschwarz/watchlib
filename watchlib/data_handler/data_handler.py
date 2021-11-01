@@ -183,31 +183,81 @@ class BBox:
 
 class BBoxFilter:
 
-    bbox: BBox
     countries: Dict[str, BBox] = {
+        "All": BBox(0, 0, 100, 100),
         "Italy": BBox(6.75, 36.62, 18.48, 47.12),
         "Germany": BBox(5.98865807458, 47.3024876979, 15.0169958839, 54.983104153),
         "Austria": BBox(9.48, 46.43, 16.98, 49.04)
     }
 
-    def __init__(self, bbox: BBox):
-        self.bbox = bbox
+    def __init__(self, routes: Dict[str, pd.DataFrame]):
+        self.routes = routes
 
-    def filter(self, routes: Dict[str, pd.DataFrame]):
+    def set_routes(self, routes: Dict[str, pd.DataFrame]):
+        self.routes = routes
+
+    def filter(self, bbox: BBox) -> Dict[str, pd.DataFrame]:
         
         """
             routes: routes that should be filtered
         """
 
-        min_lon, min_lat, max_lon, max_lat = self.bbox.get_values()
+        min_lon, min_lat, max_lon, max_lat = bbox.get_values()
 
         filtered_routes = {}
-        for key in routes:
-            route = routes[key]
+        for key in self.routes:
+            route = self.routes[key]
             if (route["lon"].min() >= min_lon) and (route["lon"].max() <= max_lon):
                 if (route["lat"].min() >= min_lat) and (route["lat"].max() <= max_lat):
                     filtered_routes[key] = route
         return filtered_routes
 
-    def filter_small_routes(self, routes, tolerance):
-        raise NotImplementedError
+    def haversine(self, lat1: float, lat2: float, lon1: float, lon2: float) -> float:
+        """
+            Calculates distance between two points on earth in km
+        """
+        lat1, lat2, lon1, lon2 = np.deg2rad((lat1, lat2, lon1, lon2))
+
+        latd = lat2 - lat1
+        lond = lon2 - lon1
+        R = 6372.8 # Earth radius in km
+        d = 2*R*np.arcsin(np.sqrt(np.sin(latd/2)**2 + np.cos(lat1)*np.cos(lat2)*np.sin(lond/2)**2))
+        return d
+
+    def haversine_for_route(self, route: pd.DataFrame) -> float:
+        lat1, lat2 = route["lat"].min(), route["lat"].max()
+        lon1, lon2 = route["lon"].min(), route["lon"].max()
+        return self.haversine(lat1, lat2, lon1, lon2)
+
+    def simple_dist(self, lat1: float, lat2: float, lon1: float, lon2: float) -> Tuple[float, float]:
+        """
+            Calculates distances between two lon and lat values
+        """
+
+        degree_to_meter = 111139
+        lond = np.abs(lon1 - lon2)*degree_to_meter
+        latd = np.abs(lat1 - lat2)*degree_to_meter
+        return lond, latd
+
+    def filter_small_routes(self, tolerance: float = 1.0) -> Dict[str, pd.DataFrame]:
+        """
+            This function uses the diagonal distance between the
+            boundary box corners to filter out smaller routes based
+            on a tolerance in km.
+        """
+
+        filtered_routes = {}
+        for key in self.routes:
+            route = self.routes[key]
+            h = self.haversine_for_route(route)
+            if h >= tolerance:
+                filtered_routes[key] = route
+        return filtered_routes
+
+    def max_bbox(self) -> float:
+        distances = [self.haversine_for_route(self.routes[route]) for route in self.routes]
+        return max(distances)
+
+    def min_bbox(self) -> float:
+        distances = [self.haversine_for_route(self.routes[route]) for route in self.routes]
+        return min(distances)
