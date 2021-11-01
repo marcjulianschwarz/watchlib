@@ -1,44 +1,111 @@
-from attr import s
 import streamlit as st
 import streamlit.components.v1 as components
 from watchlib.animation import WorkoutAnimation, ECGAnimation
-from watchlib.data_handler import DataLoader, BBoxFilter
-import random
+from watchlib.data_handler import DataLoader, BBoxFilter, BBox
+from datetime import datetime as dt
 
-def start():
-
+def header():
     st.write("# Watchlib Demo")
     st.write("**Example path:**")
     st.write("/Users/macbookpro/Documents/Code/watchlib/data/apple_health_export")
+
+def set_selected_route():
+    st.session_state.selected_route = st.session_state.all_routes[st.session_state.route_option]
+
+def set_selected_country():
+    st.session_state.selected_bbox = BBoxFilter.countries[st.session_state.country_option]
+
+
+def start():
+
+    header()
     
     st.sidebar.write("## Export path:")
     st.session_state.health_path = st.sidebar.text_input("Path to Health Export", value="/Users/macbookpro/Documents/Code/watchlib/data/apple_health_export")
-    dl = DataLoader(st.session_state.health_path)
-    
     st.sidebar.write("## Workout Route Data")
 
     if "all_routes" not in st.session_state:
         if st.sidebar.button("Load workout data"):
+                dl = DataLoader(st.session_state.health_path)
                 routes = dl.load_cached_routes()
                 st.session_state.all_routes = routes
                 st.sidebar.success(str(len(routes.keys())) + " routes have been loaded.")
 
-    def set_selected_route():
-        st.session_state.selected_route = st.session_state.all_routes[st.session_state.route_option]
 
-    def set_selected_country():
-        st.session_state.bbox = BBoxFilter.countries[st.session_state.country_option]
+    with st.sidebar.expander("Filters"):
 
-    if "all_routes" in st.session_state:
+        if "all_routes" in st.session_state:
+            st.selectbox(
+                "Select a country", 
+                (BBoxFilter.countries.keys()), 
+                key="country_option", 
+                on_change=set_selected_country
+            )
 
-        st.sidebar.selectbox("Select a country", (BBoxFilter.countries.keys()), key="country_option", on_change=set_selected_country)
-        st.session_state.bbox = BBoxFilter.countries[st.session_state.country_option]
-        if "bbox" in st.session_state:
-            b_filter = BBoxFilter(st.session_state.bbox)
-            st.session_state.filtered_routes = b_filter.filter(st.session_state.all_routes)
-            st.sidebar.selectbox('Select a route', (st.session_state.filtered_routes.keys()), key="route_option", on_change=set_selected_route)     
-            route = st.session_state.all_routes[st.session_state.route_option]
-            st.session_state.selected_route = route
+            st.session_state.selected_bbox = BBoxFilter.countries[st.session_state.country_option]
+            st.session_state.c_filtered_routes = BBoxFilter(st.session_state.all_routes).filter(st.session_state.selected_bbox)
+            
+            st.checkbox(
+                "Filter out small routes", 
+                value=True, 
+                key="filter_small_routes"
+            )
+            
+            if st.session_state.filter_small_routes:
+                if "selected_bbox" in st.session_state:
+                    st.slider(
+                        "Diagonal distance of bbox", 
+                        min_value = float(BBoxFilter(st.session_state.c_filtered_routes).min_bbox()),
+                        max_value = float(BBoxFilter(st.session_state.c_filtered_routes).max_bbox()),
+                        value = 1.0,
+                        step = 0.5, 
+                        key="filter_distance"
+                    )
+        else:
+            st.write("Load the data to apply filters.")
+
+
+
+    if "c_filtered_routes" in st.session_state:
+
+        if st.session_state.filter_small_routes:
+            bigger_routes = BBoxFilter(st.session_state.c_filtered_routes).filter_small_routes(tolerance=st.session_state.filter_distance)
+            st.session_state.cs_filtered_routes = bigger_routes
+        
+            st.sidebar.selectbox(
+                'Select a route',
+                (st.session_state.cs_filtered_routes.keys()), 
+                key = "route_option", 
+                on_change = set_selected_route
+            )
+        else:
+            st.sidebar.selectbox(
+                'Select a route',
+                (st.session_state.c_filtered_routes.keys()), 
+                key = "route_option", 
+                on_change = set_selected_route
+            )
+
+        
+        route = st.session_state.all_routes[st.session_state.route_option]
+        st.session_state.selected_route = route
+
+
+    if "selected_route" in st.session_state:
+        st.write("## Workout Animation")
+
+        if st.button("Start workout animation"):
+            with st.spinner("Rendering workout route..."):
+                wa = WorkoutAnimation(st.session_state.selected_route)
+                wa.set_fig_size(shape=(6,6))
+                ani = wa.animate()
+                f = open("/Users/macbookpro/Documents/Code/watchlib/animations/animation_" + str(dt.now().timestamp()) + ".html", "w")
+                f.write(ani.to_jshtml())
+                f.close()
+                components.html(ani.to_jshtml(), height=1000)
+
+
+
 
 
     st.sidebar.write("## ECG Data")
@@ -57,17 +124,7 @@ def start():
         st.session_state.selected_ecg = ecg
 
 
-    if "selected_route" in st.session_state:
-        st.write("## Workout Animation")
-        if st.button("Start workout animation"):
-            if st.session_state.selected_route is None:
-                st.error("Please specify a health path in the sidebar first.")
-            else:
-                with st.spinner("Rendering workout route..."):
-                    wa = WorkoutAnimation(st.session_state.selected_route)
-                    wa.set_fig_size(shape=(6,6))
-                    ani = wa.animate()
-                    components.html(ani.to_jshtml(), height=1000)
+
 
     if "ecgs" in st.session_state:
         st.write("## ECG Plot")
