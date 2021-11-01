@@ -1,0 +1,95 @@
+from typing import Tuple
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+
+class ECG:
+    # validation set
+    # valid = {
+    #     "ecg_2021-01-08.csv": 72,
+    #     "ecg_2021-01-26.csv": 81,
+    #     "ecg_2020-10-28.csv": 65,
+    #     "ecg_2021-10-04.csv": 72,
+    #     "ecg_2021-09-19.csv": 65,
+    #     "ecg_2021-02-11.csv": 72,
+    #     "ecg_2021-09-30.csv": 57,
+    #     "ecg_2021-10-05.csv": 66,
+    #     "ecg_2021-07-31.csv": 56,
+    #     "ecg_2021-02-01.csv": 66,
+    #     "ecg_2020-11-20.csv": 60,
+    #     "ecg_2020-11-08_1.csv": 57,
+    #     "ecg_2020-11-08.csv": 57,
+    #     "ecg_2020-11-04.csv": 75,
+    #     "ecg_2020-11-02_1.csv": 83,
+    #     "ecg_2020-10-26_1.csv": 61,
+    #     "ecg_2020-11-02.csv": 85,
+    #     "ecg_2020-10-26_2.csv": 49,
+    #     "ecg_2020-10-26.csv": 64,
+    #     "ecg_2020-10-30.csv": 56,
+    #     "ecg_2021-07-31_1.csv": 58 
+    # }
+
+    def __init__(self, data: pd.DataFrame):
+        self.data, self.meta_data = self.read_ecg(data)
+
+    def read_ecg(self, ecg: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame]:
+        name = ecg.columns[1]
+        ecg = ecg.rename(columns={
+                ecg.columns[0]: "name",
+                ecg.columns[1]: "value"})
+
+        meta_data = ecg.iloc[:9]
+        meta_data = dict(zip(meta_data.name, meta_data.value))
+        meta_data["name"] = name
+
+        data = ecg[9:].dropna().astype("int32")
+
+        return data, meta_data
+    
+
+    def bpm(self, a: float = 50, d: float = 180, r:float = 3, plot: bool = False) -> int:
+        """
+            Calculates heart rate (bpm) from ecg data.
+
+            a: heart beat slope amplitude threshold
+            d: heart beat distance threshold
+            r: slope calculation resolution
+            plot: plot ecg, slope and heart beat points
+        """
+        
+        x = [xx for xx in range(0, len(self.data["name"]))]
+        y = self.data["name"]
+
+        def slope(p1, p2):
+            x1, y1 = p1
+            x2, y2 = p2
+            slope = (y2 - y1)/(x2 - x1)
+            return slope
+
+        slopes = []
+        for xx in x:
+            if xx + r < len(y):
+                point1 = (xx, y.iloc[xx])
+                point2 = (xx+r, y.iloc[xx+r])
+                slopes.append(slope(point1, point2))
+
+        bpm_points = [-d]
+        for idx, slope in enumerate(slopes):
+            if np.abs(slope) > a and np.abs(bpm_points[-1] - x[idx]) > d:
+                bpm_points.append(x[idx])
+        bpm_points = bpm_points[1:]
+
+        bp = len(bpm_points)*2
+        #bp_val = valid[name]
+        #error = np.abs(bp - bp_val)
+    
+        if plot:
+            fig, ax = plt.subplots(figsize=(20, 5))
+            ax.plot(x, y, label="ECG", zorder=0)
+            ax.plot(slopes, label="slope", zorder=1)
+            ax.scatter(x=bpm_points, y=[200 for y in range(len(bpm_points))], c="r", s=60, label="heartbeat", zorder=2)
+            ax.legend()
+            plt.show()
+            return bp, fig
+            
+        return bp
