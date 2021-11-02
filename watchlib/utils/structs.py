@@ -5,33 +5,10 @@ import matplotlib.pyplot as plt
 import xml.etree.ElementTree as ET
 
 class ECG:
-    # validation set
-    # valid = {
-    #     "ecg_2021-01-08.csv": 72,
-    #     "ecg_2021-01-26.csv": 81,
-    #     "ecg_2020-10-28.csv": 65,
-    #     "ecg_2021-10-04.csv": 72,
-    #     "ecg_2021-09-19.csv": 65,
-    #     "ecg_2021-02-11.csv": 72,
-    #     "ecg_2021-09-30.csv": 57,
-    #     "ecg_2021-10-05.csv": 66,
-    #     "ecg_2021-07-31.csv": 56,
-    #     "ecg_2021-02-01.csv": 66,
-    #     "ecg_2020-11-20.csv": 60,
-    #     "ecg_2020-11-08_1.csv": 57,
-    #     "ecg_2020-11-08.csv": 57,
-    #     "ecg_2020-11-04.csv": 75,
-    #     "ecg_2020-11-02_1.csv": 83,
-    #     "ecg_2020-10-26_1.csv": 61,
-    #     "ecg_2020-11-02.csv": 85,
-    #     "ecg_2020-10-26_2.csv": 49,
-    #     "ecg_2020-10-26.csv": 64,
-    #     "ecg_2020-10-30.csv": 56,
-    #     "ecg_2021-07-31_1.csv": 58 
-    # }
 
-    def __init__(self, data: pd.DataFrame):
+    def __init__(self, data: pd.DataFrame, name: str):
         self.data, self.meta_data = self.read_ecg(data)
+        self.name = name
 
     def read_ecg(self, ecg: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame]:
         name = ecg.columns[1]
