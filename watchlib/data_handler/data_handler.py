@@ -40,19 +40,21 @@ class DataLoader:
 
     # ECG
 
-    def load_ecg(self, ecg_name: str) -> pd.DataFrame:
-        return pd.read_csv(self.ecg_path + "/" + ecg_name)
+    def load_ecg(self, ecg_name: str) -> ECG:
+        return ECG(pd.read_csv(self.ecg_path + "/" + ecg_name), ecg_name)
 
-    def load_ecgs(self) -> Dict[str, pd.DataFrame]:
+    def load_ecgs(self) -> List[ECG]:
         files = os.listdir(self.ecg_path)
         print(f"Loading {len(files)} electrocardiograms.")
-        return dict(zip(files, [self.load_ecg(filename) for filename in files]))
-
-    def read_ecgs(self, ecgs: Dict[str, pd.DataFrame]) -> Dict[str, Tuple[pd.DataFrame, pd.DataFrame]]:
-        return dict(zip(ecgs.keys(), [self.read_ecg(ecg) for ecg in ecgs.values()]))
+        return [self.load_ecg(filename) for filename in files]
 
 
     # Workout Routes
+    def load_route(self, route_name: str) -> WorkoutRoute:
+        with open(self.workout_path + "/" + route_name, "rb") as f:
+                route = ET.parse(f, parser=ET.XMLParser(encoding="utf-8")).getroot()
+                return WorkoutRoute(route, route_name)
+    
     def load_routes(self) -> List[WorkoutRoute]:
         filenames = os.listdir(self.workout_path)
         filenames = [filename for filename in filenames if os.path.isfile(os.path.join(self.workout_path, filename))]
@@ -61,18 +63,18 @@ class DataLoader:
         for filename in filenames:
             if filename == ".DS_Store":
                 continue
-            with open(self.workout_path + "/" + filename, "rb") as f:
-                route = ET.parse(f, parser=ET.XMLParser(encoding="utf-8")).getroot()
-                routes.append(WorkoutRoute(route, filename))
+            routes.append(self.load_route(filename))
         return routes
 
+    # def read_routes(self, routes: Dict[str, ET.Element]) -> Dict[str, WorkoutRoute]:
+    #     data = {}
+    #     for r in routes:
+    #         route = routes[r]
+    #         data[r] = WorkoutRoute(route)
+    #     return data
 
-    def read_routes(self, routes: Dict[str, ET.Element]) -> Dict[str, WorkoutRoute]:
-        data = {}
-        for r in routes:
-            route = routes[r]
-            data[r] = WorkoutRoute(route)
-        return data
+    # def read_ecgs(self, ecgs: Dict[str, pd.DataFrame]) -> Dict[str, Tuple[pd.DataFrame, pd.DataFrame]]:
+    #     return dict(zip(ecgs.keys(), [self.read_ecg(ecg) for ecg in ecgs.values()]))
 
     # CSV saving and loading
     def cache_route(self, data: pd.DataFrame, filename: str):
@@ -127,6 +129,29 @@ class BBoxFilter:
 
     def set_routes(self, routes: List[WorkoutRoute]):
         self.routes = routes
+
+    def check_country_bbox(self, country: str, bbox: BBox) -> bool:
+        country_bbox = self.countries[country]
+        min_lon, min_lat, max_lon, max_lat = country_bbox.get_values()
+        min_lon_r, min_lat_r, max_lon_r, max_lat_r = bbox.get_values()
+        return (min_lon_r > min_lon) and (min_lat_r > min_lat) and (max_lon_r < max_lon) and (max_lat_r < max_lat)
+
+    def route_bboxes(self) -> List[BBox]:
+        bboxes = []
+        for route in self.routes:
+            lat_min, lat_max = route["lat"].min(), route["lat"].max()
+            lon_min, lon_max = route["lon"].min(), route["lon"].max()
+            bboxes.append(BBox(lon_min, lat_min, lon_max, lat_max))
+        return bboxes
+
+    def route_countries(self) -> List[str]:
+        countries = []
+        bboxes = self.route_bboxes()
+        for bbox in bboxes:
+            for country in self.countries:
+                if self.check_country_bbox(country, bbox):
+                    countries.append(country)           
+        return countries
 
     def filter(self, bbox: BBox) -> List[WorkoutRoute]:
         
