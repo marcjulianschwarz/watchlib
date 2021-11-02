@@ -3,7 +3,7 @@ import pandas as pd
 import os
 from typing import List, Tuple, Dict
 import numpy as np
-from watchlib.utils import ECG
+from watchlib.utils import ECG, WorkoutRoute
 
 
 class DataLoader:
@@ -48,90 +48,31 @@ class DataLoader:
         print(f"Loading {len(files)} electrocardiograms.")
         return dict(zip(files, [self.load_ecg(filename) for filename in files]))
 
-    
-
     def read_ecgs(self, ecgs: Dict[str, pd.DataFrame]) -> Dict[str, Tuple[pd.DataFrame, pd.DataFrame]]:
         return dict(zip(ecgs.keys(), [self.read_ecg(ecg) for ecg in ecgs.values()]))
 
 
     # Workout Routes
-    def load_routes(self) -> List[ET.Element]:
-
+    def load_routes(self) -> List[WorkoutRoute]:
         filenames = os.listdir(self.workout_path)
         filenames = [filename for filename in filenames if os.path.isfile(os.path.join(self.workout_path, filename))]
         print(f"Loading {len(filenames)} workout routes.")
         routes = []
         for filename in filenames:
-            with open(self.workout_path + "/" + filename) as f:
-                routes.append(ET.parse(f).getroot())
-        
-        return dict(zip(filenames, routes))
+            if filename == ".DS_Store":
+                continue
+            with open(self.workout_path + "/" + filename, "rb") as f:
+                route = ET.parse(f, parser=ET.XMLParser(encoding="utf-8")).getroot()
+                routes.append(WorkoutRoute(route, filename))
+        return routes
 
-    def load_route(self, date: str) -> ET.Element:
 
-        filenames = np.array(os.listdir(self.workout_path))
-        routes = []
-        route_roots = []
-        for filename in filenames:
-            if ("route_" + date) in filename:
-                routes.append(filename)
-
-        for route in routes:
-            with open(self.workout_path + "/" + route) as file:
-                route_roots.append(ET.parse(file).getroot())
-        
-        if len(route_roots) == 1:
-            return route_roots[0]
-        else:
-            return route_roots
-
-    def read_route(self, route: ET.Element) -> pd.DataFrame:
-
-        ns = {"gpx": "http://www.topografix.com/GPX/1/1"}
-        tracks = route.findall('gpx:trk', ns)
-
-        data = {
-            "lon": [],
-            "lat": [],
-            "time": [],
-            "elevation": [],
-            "speed": [],
-            "course": [],
-            "hAcc": [],
-            "vAcc": []
-        }
-
-        for track in tracks:
-            track_segments = track.findall('gpx:trkseg', ns)
-            for track_segment in track_segments:
-                track_points = track_segment.findall('gpx:trkpt', ns)
-                for track_point in track_points:
-
-                    elevation = track_point.findall('gpx:ele', ns)[0].text
-                    time = track_point.findall('gpx:time', ns)[0].text
-                    extension = track_point.findall('gpx:extensions', ns)[0]
-
-                    lon = track_point.get("lon")
-                    lat = track_point.get("lat")
-                    speed = extension.findall('gpx:speed', ns)[0].text
-                    course = extension.findall('gpx:course', ns)[0].text
-                    hAcc = extension.findall('gpx:hAcc', ns)[0].text
-                    vAcc = extension.findall('gpx:vAcc', ns)[0].text
-
-                    data["lon"].append(float(lon))
-                    data["lat"].append(float(lat))
-                    data["elevation"].append(float(elevation))
-                    data["time"].append(time)
-                    data["speed"].append(float(speed))
-                    data["course"].append(float(course))
-                    data["hAcc"].append(float(hAcc))
-                    data["vAcc"].append(float(vAcc))
-
-        return pd.DataFrame(data)
-
-    def read_routes(self, routes: Dict[str, ET.Element]) -> Dict[str, pd.DataFrame]:
-        data = [self.read_route(route) for route in routes.values()]
-        return dict(zip(routes.keys(), data))
+    def read_routes(self, routes: Dict[str, ET.Element]) -> Dict[str, WorkoutRoute]:
+        data = {}
+        for r in routes:
+            route = routes[r]
+            data[r] = WorkoutRoute(route)
+        return data
 
     # CSV saving and loading
     def cache_route(self, data: pd.DataFrame, filename: str):
@@ -143,15 +84,17 @@ class DataLoader:
         for key in data:
             self.cache_route(data[key], key)
     
-    def load_cached_route(self, path):
-        return pd.read_csv(path)
+    def load_cached_route(self, filename) -> WorkoutRoute:
+        return WorkoutRoute(pd.read_csv(self.cached_routes_path + "/" + filename), filename)
 
-    def load_cached_routes(self) -> Dict[str, pd.DataFrame]:
-        data = {}
+    def load_cached_routes(self) -> List[WorkoutRoute]:
+        routes = []
         for filename in os.listdir(self.cached_routes_path):
-            data[filename] = self.load_cached_route(self.cached_routes_path + "/" + filename)
-        return data
+            routes.append(self.load_cached_route(filename))
+        return routes
 
+
+# Filtering
 
 class BBox:
 
@@ -179,13 +122,13 @@ class BBoxFilter:
         "Austria": BBox(9.48, 46.43, 16.98, 49.04)
     }
 
-    def __init__(self, routes: Dict[str, pd.DataFrame]):
+    def __init__(self, routes: List[WorkoutRoute]):
         self.routes = routes
 
-    def set_routes(self, routes: Dict[str, pd.DataFrame]):
+    def set_routes(self, routes: List[WorkoutRoute]):
         self.routes = routes
 
-    def filter(self, bbox: BBox) -> Dict[str, pd.DataFrame]:
+    def filter(self, bbox: BBox) -> List[WorkoutRoute]:
         
         """
             routes: routes that should be filtered
@@ -193,12 +136,11 @@ class BBoxFilter:
 
         min_lon, min_lat, max_lon, max_lat = bbox.get_values()
 
-        filtered_routes = {}
-        for key in self.routes:
-            route = self.routes[key]
+        filtered_routes = []
+        for route in self.routes:
             if (route["lon"].min() >= min_lon) and (route["lon"].max() <= max_lon):
                 if (route["lat"].min() >= min_lat) and (route["lat"].max() <= max_lat):
-                    filtered_routes[key] = route
+                    filtered_routes.append(route)
         return filtered_routes
 
     def haversine(self, lat1: float, lat2: float, lon1: float, lon2: float) -> float:
@@ -213,7 +155,7 @@ class BBoxFilter:
         d = 2*R*np.arcsin(np.sqrt(np.sin(latd/2)**2 + np.cos(lat1)*np.cos(lat2)*np.sin(lond/2)**2))
         return d
 
-    def haversine_for_route(self, route: pd.DataFrame) -> float:
+    def haversine_for_route(self, route: WorkoutRoute) -> float:
         lat1, lat2 = route["lat"].min(), route["lat"].max()
         lon1, lon2 = route["lon"].min(), route["lon"].max()
         return self.haversine(lat1, lat2, lon1, lon2)
@@ -228,25 +170,24 @@ class BBoxFilter:
         latd = np.abs(lat1 - lat2)*degree_to_meter
         return lond, latd
 
-    def filter_small_routes(self, tolerance: float = 1.0) -> Dict[str, pd.DataFrame]:
+    def filter_small_routes(self, tolerance: float = 1.0) -> List[WorkoutRoute]:
         """
             This function uses the diagonal distance between the
             boundary box corners to filter out smaller routes based
             on a tolerance in km.
         """
 
-        filtered_routes = {}
-        for key in self.routes:
-            route = self.routes[key]
+        filtered_routes = []
+        for route in self.routes:
             h = self.haversine_for_route(route)
             if h >= tolerance:
-                filtered_routes[key] = route
+                filtered_routes.append(route)
         return filtered_routes
 
     def max_bbox(self) -> float:
-        distances = [self.haversine_for_route(self.routes[route]) for route in self.routes]
+        distances = [self.haversine_for_route(route) for route in self.routes]
         return max(distances)
 
     def min_bbox(self) -> float:
-        distances = [self.haversine_for_route(self.routes[route]) for route in self.routes]
+        distances = [self.haversine_for_route(route) for route in self.routes]
         return min(distances)

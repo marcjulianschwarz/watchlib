@@ -1,5 +1,7 @@
 import matplotlib.pyplot as plt
 import matplotlib
+
+from watchlib.utils.structs import WorkoutRoute
 matplotlib.rcParams['animation.embed_limit'] = 2**128
 import numpy as np
 import pandas as pd
@@ -16,12 +18,9 @@ class HealthAnimation(ABC):
 
     interval: int = 10
     fig_size = (5, 5)
-    data: pd.DataFrame = None
-    meta_data: pd.DataFrame = None
 
-    def __init__(self, data, meta_data=None):
+    def __init__(self, data):
         self.data = data
-        self.meta_data = meta_data
 
     def set_options(self, options):
         for option in options:

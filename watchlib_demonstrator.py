@@ -11,7 +11,7 @@ def header():
     st.write("/Users/macbookpro/Documents/Code/watchlib/data/apple_health_export")
 
 def set_selected_route():
-    st.session_state.selected_route = st.session_state.all_routes[st.session_state.route_option]
+    st.session_state.selected_route = [route for route in st.session_state.all_routes if route.name == st.session_state.route_option][0]
 
 def set_selected_country():
     st.session_state.selected_bbox = BBoxFilter.countries[st.session_state.country_option]
@@ -30,7 +30,7 @@ def start():
         if st.sidebar.button("Load workout data"):
                 routes = dl.load_cached_routes()
                 st.session_state.all_routes = routes
-                st.sidebar.success(str(len(routes.keys())) + " routes have been loaded.")
+                st.sidebar.success(str(len(routes)) + " routes have been loaded.")
 
 
     with st.sidebar.expander("Filters"):
@@ -75,22 +75,21 @@ def start():
         
             st.sidebar.selectbox(
                 'Select a route',
-                (st.session_state.cs_filtered_routes.keys()), 
+                ([route.name for route in st.session_state.cs_filtered_routes]), 
                 key = "route_option", 
                 on_change = set_selected_route
             )
         else:
             st.sidebar.selectbox(
                 'Select a route',
-                (st.session_state.c_filtered_routes.keys()), 
+                ([route.name for route in st.session_state.cs_filtered_routes]), 
                 key = "route_option", 
                 on_change = set_selected_route
             )
 
         
-        route = st.session_state.all_routes[st.session_state.route_option]
+        route = [route for route in st.session_state.all_routes if route.name == st.session_state.route_option][0]
         st.session_state.selected_route = route
-
 
     if "selected_route" in st.session_state:
         st.write("## Workout Animation")
