@@ -106,9 +106,7 @@ def start():
                 components.html(html, height=1000)
 
 
-
     # ECG
-
     st.sidebar.write("## ECG Data")
     if "ecgs" not in st.session_state:    
         if st.sidebar.button("Load electrocardiogram data"):
@@ -116,11 +114,11 @@ def start():
             st.sidebar.success(str(len(st.session_state.ecgs)) + " ecgs have been loaded.")
 
     def set_selected_ecg():
-        st.session_state.selected_ecg = st.session_state.ecgs[st.session_state.ecg_option]
+        st.session_state.selected_ecg = [ecg for ecg in st.session_state.ecgs if ecg.name == st.session_state.ecg_option][0]
 
     if "ecgs" in st.session_state:
-        st.sidebar.selectbox('Select an ECG', (st.session_state.ecgs.keys()), key="ecg_option", on_change=set_selected_ecg)     
-        ecg = st.session_state.ecgs[st.session_state.ecg_option]
+        st.sidebar.selectbox('Select an ECG', [ecg.name for ecg in st.session_state.ecgs], key="ecg_option", on_change=set_selected_ecg)     
+        ecg = [ecg for ecg in st.session_state.ecgs if ecg.name == st.session_state.ecg_option][0]
         st.session_state.selected_ecg = ecg
 
     if "ecgs" in st.session_state:
@@ -129,11 +127,33 @@ def start():
             if st.session_state.selected_ecg is None:
                     st.error("Please specify a health path in the sidebar first.")
             else:
-                e = ECG(st.session_state.selected_ecg)
-                bpm, fig = e.bpm(plot=True)
+                bpm, fig = st.session_state.selected_ecg.bpm(plot=True)
                 st.write("Heartbeats per minute: " + str(bpm))
                 st.write(fig)
 
+    # Other health data
+    st.sidebar.write("## Health Data")
+    if "data" not in st.session_state:
+        if st.sidebar.button("Load health data"):
+                data = dl.load_cached_export_data()
+                st.session_state.data = data
+                st.sidebar.success(str(len(list(data.keys()))) + " dataframes have been loaded.")
+
+    def set_selected_data():
+        st.session_state.selected_data = st.session_state.data[st.session_state.data_option]
+
+    if "data" in st.session_state:
+        st.sidebar.selectbox('Select a key', list(st.session_state.data.keys()), key="data_option", on_change=set_selected_data)     
+        selected_data = st.session_state.data[st.session_state.data_option]
+        st.session_state.selected_data = selected_data
+
+    if "data" in st.session_state:    
+        st.write("## Health Data")
+        if st.button("Show dataframe"):
+            if st.session_state.selected_data is None:
+                    st.error("Please specify a health path in the sidebar first.")
+            else:
+                st.write(st.session_state.selected_data)
 
 if __name__ == "__main__":
     start()
