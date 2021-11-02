@@ -19,16 +19,18 @@ To use this Python package you first have to export the health data:
 8. Choose a folder and tap "Save"
 9. Last step is to unzip the "Export.zip" file
 
-
-
-## Notebook Demos
+## Notebook demos
 - [DataLoader Demo](https://github.com/marcjulianschwarz/watchlib/blob/main/demos/01%20-%20DataLoader.ipynb)
 - [Workout Route Demo](https://github.com/marcjulianschwarz/watchlib/blob/main/demos/02%20-%20Workout%20Route.ipynb)
 - [Electrocardiogram Demo](https://github.com/marcjulianschwarz/watchlib/blob/main/demos/03%20-%20Electrocardiogram.ipynb)
 
-## ECG heartbeat calculation
-![ECG heartbeat calculation](https://user-images.githubusercontent.com/67844154/139928337-32da0959-1445-484f-b745-a3ef7a82a133.png)
+## Streamlit demo
+![streamlit ecg](https://user-images.githubusercontent.com/67844154/139928737-b6043660-24c3-47d6-9ea5-e54b461c9740.png)
+![streamlit workout](https://user-images.githubusercontent.com/67844154/139928829-7f27742e-f3a6-4494-9247-9fb81f79a1e4.png)
 
+## ECG heartbeat calculation
+![ECG heartbeat calculation slow](https://user-images.githubusercontent.com/67844154/139928546-002b8fbb-94c2-471b-ac05-b5cf64454b9e.png)
+![ECG heartbeat calculation fast](https://user-images.githubusercontent.com/67844154/139928552-d6952176-14b5-4431-a3c6-db7eb893dd22.png)
 
 
 ## Workout Animation
