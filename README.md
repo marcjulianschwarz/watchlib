@@ -26,7 +26,11 @@ To use this Python package you first have to export the health data:
 - [Workout Route Demo](https://github.com/marcjulianschwarz/watchlib/blob/main/demos/02%20-%20Workout%20Route.ipynb)
 - [Electrocardiogram Demo](https://github.com/marcjulianschwarz/watchlib/blob/main/demos/03%20-%20Electrocardiogram.ipynb)
 
+## ECG heartbeat calculation
+![ECG heartbeat calculation](https://user-images.githubusercontent.com/67844154/139928337-32da0959-1445-484f-b745-a3ef7a82a133.png)
+
 
 
 ## Workout Animation
+Watch an example workout animation <a href="https://www.marc-julian.de/watchlib/animations/animation_1635878885.729083.html">here</a>
 
