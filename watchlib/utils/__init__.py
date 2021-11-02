@@ -1,1 +1,1 @@
-from watchlib.utils.structs import ECG
+from watchlib.utils.structs import ECG, WorkoutRoute
