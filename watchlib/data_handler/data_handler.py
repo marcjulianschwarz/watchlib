@@ -14,12 +14,12 @@ class DataLoader:
         self.ecg_path = path + "/electrocardiograms"
         self.workout_path = path + "/workout-routes"
         self.cached_routes_path = self.workout_path + "/cached_routes"
+        self.cached_export_data_path = self.path + "/cached_export_data"
 
     def get_export_data(self) -> dict:
 
         tree = ET.parse(self.export_path)
         root = tree.getroot()
-
         records = root.findall('Record')
 
         data = {}
@@ -31,15 +31,36 @@ class DataLoader:
             key = record.get("type")
             value = record.get("value")
             time = record.get("creationDate")
-            data[record.get("type")].append((time, value))
+            data[key].append((time, value))
 
         for key in data.keys():
             data[key] = pd.DataFrame(data[key], columns=["time", "value"])
 
         return data
 
-    # ECG
 
+    def cache_export_data(self, data: dict):
+        for key in data:
+            df = data[key]
+            df.to_csv(self.cached_export_data_path + "/" + key + ".csv", index=False)
+
+    def get_identifier_name(self, id):
+        if "Identifier" in id:
+            return id.split("Identifier")[1]
+        else:
+            return id.split("Type")[1]
+
+    def load_cached_export_data_by_key(self, key: str) -> pd.DataFrame:
+        return pd.read_csv(self.cached_export_data_path + "/" + key)
+
+    def load_cached_export_data(self) -> Dict[str, pd.DataFrame]:
+        data = {}
+        for filename in os.listdir(self.cached_export_data_path):
+            id = self.get_identifier_name(filename.split(".csv")[0])
+            data[id] = self.load_cached_export_data_by_key(filename)
+        return data
+
+    # ECG
     def load_ecg(self, ecg_name: str) -> ECG:
         return ECG(pd.read_csv(self.ecg_path + "/" + ecg_name), ecg_name)
 
@@ -66,25 +87,16 @@ class DataLoader:
             routes.append(self.load_route(filename))
         return routes
 
-    # def read_routes(self, routes: Dict[str, ET.Element]) -> Dict[str, WorkoutRoute]:
-    #     data = {}
-    #     for r in routes:
-    #         route = routes[r]
-    #         data[r] = WorkoutRoute(route)
-    #     return data
-
-    # def read_ecgs(self, ecgs: Dict[str, pd.DataFrame]) -> Dict[str, Tuple[pd.DataFrame, pd.DataFrame]]:
-    #     return dict(zip(ecgs.keys(), [self.read_ecg(ecg) for ecg in ecgs.values()]))
 
     # CSV saving and loading
-    def cache_route(self, data: pd.DataFrame, filename: str):
+    def cache_route(self, data: WorkoutRoute, filename: str):
         if not os.path.exists(self.cached_routes_path):
             os.mkdir(self.cached_routes_path)
-        data.to_csv(self.cached_routes_path + "/" + filename)
+        data.to_csv(self.cached_routes_path + "/" + filename, index=False)
 
-    def cache_routes(self, data: Dict[str, pd.DataFrame]):
-        for key in data:
-            self.cache_route(data[key], key)
+    def cache_routes(self, routes: List[WorkoutRoute]):
+        for route in routes:
+            self.cache_route(route, route.name)
     
     def load_cached_route(self, filename) -> WorkoutRoute:
         return WorkoutRoute(pd.read_csv(self.cached_routes_path + "/" + filename), filename)
