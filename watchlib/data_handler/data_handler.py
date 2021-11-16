@@ -4,6 +4,7 @@ import os
 from typing import List, Tuple, Dict
 import numpy as np
 from watchlib.utils import ECG, WorkoutRoute
+from abc import ABC
 
 
 class DataLoader:
@@ -39,27 +40,6 @@ class DataLoader:
         return data
 
 
-    def cache_export_data(self, data: dict):
-        for key in data:
-            df = data[key]
-            df.to_csv(self.cached_export_data_path + "/" + key + ".csv", index=False)
-
-    def get_identifier_name(self, id):
-        if "Identifier" in id:
-            return id.split("Identifier")[1]
-        else:
-            return id.split("Type")[1]
-
-    def load_cached_export_data_by_key(self, key: str) -> pd.DataFrame:
-        return pd.read_csv(self.cached_export_data_path + "/" + key)
-
-    def load_cached_export_data(self) -> Dict[str, pd.DataFrame]:
-        data = {}
-        for filename in os.listdir(self.cached_export_data_path):
-            id = self.get_identifier_name(filename.split(".csv")[0])
-            data[id] = self.load_cached_export_data_by_key(filename)
-        return data
-
     # ECG
     def load_ecg(self, ecg_name: str) -> ECG:
         return ECG(pd.read_csv(self.ecg_path + "/" + ecg_name), ecg_name)
@@ -88,15 +68,24 @@ class DataLoader:
         return routes
 
 
-    # CSV saving and loading
-    def cache_route(self, data: WorkoutRoute, filename: str):
+class CacheHandler:
+
+    def __init__(self, path: str) -> None:
+        self.path = path
+        self.export_path = path + "/Export.xml"
+        self.ecg_path = path + "/electrocardiograms"
+        self.workout_path = path + "/workout-routes"
+        self.cached_routes_path = self.workout_path + "/cached_routes"
+        self.cached_export_data_path = self.path + "/cached_export_data"
+
+    def __cache_route(self, route: WorkoutRoute):
         if not os.path.exists(self.cached_routes_path):
             os.mkdir(self.cached_routes_path)
-        data.to_csv(self.cached_routes_path + "/" + filename, index=False)
+        route.route.to_csv(self.cached_routes_path + "/" + route.name, index=False)
 
     def cache_routes(self, routes: List[WorkoutRoute]):
         for route in routes:
-            self.cache_route(route, route.name)
+            self.__cache_route(route)
     
     def load_cached_route(self, filename) -> WorkoutRoute:
         return WorkoutRoute(pd.read_csv(self.cached_routes_path + "/" + filename), filename)
@@ -107,8 +96,37 @@ class DataLoader:
             routes.append(self.load_cached_route(filename))
         return routes
 
+    # Cached export data
+    def cache_export_data(self, data: dict):
+        for key in data:
+            df = data[key]
+            df.to_csv(self.cached_export_data_path + "/" + key + ".csv", index=False)
+
+    def get_identifier_name(self, id):
+        if "Identifier" in id:
+            return id.split("Identifier")[1]
+        else:
+            return id.split("Type")[1]
+
+    def load_cached_export_data_by_key(self, key: str) -> pd.DataFrame:
+        return pd.read_csv(self.cached_export_data_path + "/" + key)
+
+    def load_cached_export_data(self) -> Dict[str, pd.DataFrame]:
+        data = {}
+        for filename in os.listdir(self.cached_export_data_path):
+            id = self.get_identifier_name(filename.split(".csv")[0])
+            data[id] = self.load_cached_export_data_by_key(filename)
+        return data
+
 
 # Filtering
+
+class Filter(ABC):
+
+    def __init__():
+        pass
+
+
 
 class BBox:
 
@@ -127,7 +145,7 @@ class BBox:
         return self.min_lon, self.min_lat, self.max_lon, self.max_lat
 
 
-class BBoxFilter:
+class BBoxFilter(Filter):
 
     countries: Dict[str, BBox] = {
         "All": BBox(0, 0, 100, 100),
@@ -228,3 +246,36 @@ class BBoxFilter:
     def min_bbox(self) -> float:
         distances = [self.haversine_for_route(route) for route in self.routes]
         return min(distances)
+
+class TimeFilter(Filter):
+
+    def __init__(self, routes: List[WorkoutRoute]):
+        self.routes = routes
+
+    def routes_after(self, time:str):
+        raise NotImplementedError
+
+    def routes_before(self, time:str):
+        raise NotImplementedError
+
+    def routes_between(self, start, end):
+        raise NotImplementedError
+
+    def min_time(self):
+        raise NotImplementedError
+
+    def max_time(self):
+        raise NotImplementedError
+
+
+class FilterPipeline:
+
+    def __init__(self, filter_names:List[str], filters: List[Filter]):
+        self.filter_names = filter_names
+        self.filters = filters
+
+    def filter(self, data):
+        filtered_data = data
+        for filter in self.filters:
+            data = filter.filter(data)
+        return filtered_data
