@@ -109,8 +109,8 @@ class WorkoutAnimation(HealthAnimation):
                 ax.view_init(10, i/5)
             return [fig]
         
-        anim = animation.FuncAnimation(fig, update, init_func=init, frames=len(segments), interval=self.interval, blit=True)
-        return anim
+        ani = animation.FuncAnimation(fig, update, init_func=init, frames=len(segments), interval=self.interval, blit=True)
+        return ani
 
 
 class ECGAnimation(HealthAnimation):
@@ -122,20 +122,20 @@ class ECGAnimation(HealthAnimation):
 
         fig, ax = plt.subplots(figsize=(40,5))
         
-        ax.plot(x, y)
+        line = ax.plot(x, y)
 
         if self.meta_data:
             plt.title("Date: " + self.meta_data["Aufzeichnungsdatum"] + "     Classification: " + self.meta_data["Klassifizierung"])
 
-        return fig, ax
+        return fig, line
 
     def animate(self):
 
-        fig, ax = self.plot_ecg()
-
-        def init():
-            return [fig]
+        fig, line = self.plot_ecg()
 
         def update(i):
+            line.set_data()
             return [fig]
     
+        ani = animation.FuncAnimation(fig, update, len(self.data["name"]), blit=True)
+        return ani
