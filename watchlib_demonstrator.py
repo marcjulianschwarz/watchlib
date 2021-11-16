@@ -1,14 +1,18 @@
 import streamlit as st
 import streamlit.components.v1 as components
+from watchlib.analysis.ecg_analysis import hrvs
 from watchlib.animation import WorkoutAnimation, ECGAnimation
-from watchlib.data_handler import DataLoader, BBoxFilter, BBox
+from watchlib.data_handler import DataLoader, CacheHandler, BBoxFilter, BBox
 from watchlib.utils import ECG
+from watchlib.analysis import analyse_ecg, heart_rate_variability
 from datetime import datetime as dt
+import matplotlib.pyplot as plt
+import os
 
 def header():
     st.write("# Watchlib Demo")
     st.write("**Example path:**")
-    st.write("/Users/macbookpro/Documents/Code/watchlib/data/apple_health_export")
+    st.write("*/Users/macbookpro/Documents/Code/watchlib/data/apple_health_export*")
 
 def set_selected_route():
     st.session_state.selected_route = [route for route in st.session_state.all_routes if route.name == st.session_state.route_option][0]
@@ -23,12 +27,15 @@ def start():
     
     st.sidebar.write("## Export path:")
     st.session_state.health_path = st.sidebar.text_input("Path to Health Export", value="/Users/macbookpro/Documents/Code/watchlib/data/apple_health_export")
+    st.session_state.cached_route_animations_path = st.session_state.health_path + "/workout-routes/cached_animations"
+    #st.session_state.cached_ecg_animations_path = ""
     dl = DataLoader(st.session_state.health_path)
+    ch = CacheHandler(st.session_state.health_path)
     st.sidebar.write("## Workout Route Data")
 
     if "all_routes" not in st.session_state:
         if st.sidebar.button("Load workout data"):
-                routes = dl.load_cached_routes()
+                routes = ch.load_cached_routes()
                 st.session_state.all_routes = routes
                 st.sidebar.success(str(len(routes)) + " routes have been loaded.")
 
@@ -94,17 +101,26 @@ def start():
     if "selected_route" in st.session_state:
         st.write("## Workout Animation")
 
+        st.session_state.save_animation = st.checkbox("Save animation for faster loading times")
         if st.button("Start workout animation"):
             with st.spinner("Rendering workout route..."):
-                wa = WorkoutAnimation(st.session_state.selected_route)
-                wa.set_fig_size(shape=(6,6))
-                ani = wa.animate()
-                html = ani.to_jshtml()
-                f = open("/Users/macbookpro/Documents/Code/watchlib/animations/animation_" + str(dt.now().timestamp()) + ".html", "w")
-                f.write(html)
-                f.close()
-                components.html(html, height=1000)
 
+                if os.path.exists(st.session_state.health_path + "/workout-routes/cached_animations/" + st.session_state.selected_route.name + ".html"):
+                    with open(st.session_state.health_path + "/workout-routes/cached_animations/" + st.session_state.selected_route.name + ".html", "r") as f:
+                        st.session_state.route_html = f.read()
+                else:
+                    wa = WorkoutAnimation(st.session_state.selected_route)
+                    wa.set_fig_size(shape=(6,6))
+                    ani = wa.animate()
+                    html = ani.to_jshtml()
+                    st.session_state.route_html = html
+                components.html(st.session_state.route_html, height=800)
+    
+            if "route_html" in st.session_state and st.session_state.save_animation and not os.path.exists(st.session_state.health_path + "/workout-routes/cached_animations/" + st.session_state.selected_route.name + ".html"):
+                filename = st.session_state.selected_route.name + ".html"
+                with open(st.session_state.health_path + "/workout-routes/cached_animations/" + filename, "w") as f:
+                    f.write(st.session_state.route_html)
+                st.write("Cached animation: *" + filename + "*")
 
     # ECG
     st.sidebar.write("## ECG Data")
@@ -127,15 +143,26 @@ def start():
             if st.session_state.selected_ecg is None:
                     st.error("Please specify a health path in the sidebar first.")
             else:
-                bpm, fig = st.session_state.selected_ecg.bpm(plot=True)
-                st.write("Heartbeats per minute: " + str(bpm))
-                st.write(fig)
+                bpm, fig = analyse_ecg(st.session_state.selected_ecg, plot=True)
+                hrv = heart_rate_variability(st.session_state.selected_ecg)
+                
+                st.session_state.ecg_fig = fig
+                st.write("Heartbeats per minute: " + str(round(bpm)))
+                st.write("Heartrate variability: " + str(round(hrv, 2)))
+                st.write(st.session_state.ecg_fig)
+
+    if "ecg_fig" in st.session_state:
+        st.session_state.plot_path = st.text_input("Path to save plot", "/Users/macbookpro/Desktop/Plots and animations")
+        if st.button("Save plot"):
+            filename = "plot_" + str(dt.now().timestamp()) + ".png"
+            st.session_state.ecg_fig.savefig(st.session_state.plot_path + "/" + filename, dpi=300)
+            st.write("Saved plot: *" + filename + "*")
 
     # Other health data
     st.sidebar.write("## Health Data")
     if "data" not in st.session_state:
         if st.sidebar.button("Load health data"):
-                data = dl.load_cached_export_data()
+                data = ch.load_cached_export_data()
                 st.session_state.data = data
                 st.sidebar.success(str(len(list(data.keys()))) + " dataframes have been loaded.")
 
