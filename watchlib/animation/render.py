@@ -115,27 +115,37 @@ class WorkoutAnimation(HealthAnimation):
 
 class ECGAnimation(HealthAnimation):
 
-    def plot_ecg(self):
 
-        y = self.data["name"]
-        x = np.linspace(0, 1, len(y))
+    def animate(self, length=1, res=6, speed=1, sample=512):
 
-        fig, ax = plt.subplots(figsize=(40,5))
-        
-        line = ax.plot(x, y)
+        l = 1/length
+        ecg: pd.DataFrame = self.data
 
-        if self.meta_data:
-            plt.title("Date: " + self.meta_data["Aufzeichnungsdatum"] + "     Classification: " + self.meta_data["Klassifizierung"])
+        data = ecg["name"].iloc[:int(len(ecg["name"])/l)].iloc[::res]
+        x_values = [xx for xx in range(0, len(ecg["name"].iloc[:int(len(ecg["name"])/l)]))][::res]
 
-        return fig, line
+        fig, ax = plt.subplots(figsize=(20, 5))
+        ax.set_xlim(-10, len(ecg["name"])+10)
+        ax.set_ylim(data.min() -20, data.max()+20)
 
-    def animate(self):
+        # INIT
+        y = data.iloc[0]
+        x = x_values[0]
+        line, = ax.plot(x, y)
 
-        fig, line = self.plot_ecg()
+        if self.data.meta_data:
+            plt.title("Date: " + self.data.meta_data["Aufzeichnungsdatum"] + "     Classification: " + self.data.meta_data["Klassifizierung"])
 
         def update(i):
-            line.set_data()
-            return [fig]
-    
-        ani = animation.FuncAnimation(fig, update, len(self.data["name"]), blit=True)
+            y = data.iloc[:i]
+            x = x_values[:i]
+
+            line.set_xdata(x)
+            line.set_ydata(y)
+            return line,
+
+        ani = animation.FuncAnimation(
+            fig, update, interval=1000/(sample/res)/speed, blit=True, frames=int(sample/res*30*length))
+        
         return ani
+        
