@@ -11,6 +11,8 @@ class ECG:
     def __init__(self, data: pd.DataFrame, name: str):
         self.data, self.meta_data = self.read_ecg(data)
         self.name = name
+        self.x = [xx for xx in range(0, len(self.data["name"]))]
+        self.y = list(self.data["name"])
 
     def read_ecg(self, ecg: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame]:
         name = ecg.columns[1]
