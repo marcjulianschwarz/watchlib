@@ -2,9 +2,13 @@
 *watchlib* is a python library for analyzing and visualizing Apple Watch health data.
 
 ### Features:
-- Data loader
-- Plotting
-- Animation
+- `DataLoader`
+- `CacheHandler`
+- `ECGAnimation`
+- `WorkoutAnimation`
+- `ecg_analysis`
+- `ECG`
+- `WorkoutRoute`
 
 ## Get data from health export
 To use this Python package you first have to export the health data:
@@ -18,6 +22,42 @@ To use this Python package you first have to export the health data:
 7. Select "Save in files"
 8. Choose a folder and tap "Save"
 9. Last step is to unzip the "Export.zip" file
+
+
+## ECG
+### ECG Analysis
+
+Calculate various heart rate metrics from a 30 second ECG:
+- beats per minute (bpm)
+- time between heartbeats in ms
+- heart rate variability (hrv)
+- *coming soon*: ECG wave detection
+
+### ECG Plotting and Animation
+- plot ECG
+- plot ECG together with metrics
+- animate ECG
+
+## Workout Route
+Filtering workout routes by:
+- country
+- bounding box size in km
+- length of workout in min
+
+3D animation of workout routes:
+- coloring based on:
+    - elevation
+    - speed
+    - course
+    - horizontal acceleration
+    - vertical acceleration
+
+## Other Health Data
+- loading and converting other health data
+
+### Analysis of other health data
+*coming soon*
+
 
 ## Notebook demos
 - [DataLoader Demo](https://github.com/marcjulianschwarz/watchlib/blob/main/demos/01%20-%20DataLoader.ipynb)
