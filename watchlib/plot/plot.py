@@ -49,3 +49,4 @@ def plot_ecg(ecg: ECG):
     ax.scatter(x=points, y=[200 for y in range(len(points))], c="r", s=60, label="heartbeat", zorder=2)
     ax.legend()
     plt.show()
+    return fig

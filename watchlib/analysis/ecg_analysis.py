@@ -20,7 +20,7 @@ def bpm(ecg: ECG, a: float = 50, d: float = 180, r:float = 3, sample_rate:int = 
         """
         x, y = ecg.x, ecg.y
         points = bpm_points(ecg, a, d, r)
-        bpm = len(bpm_points) * 60 / len(y)
+        bpm = len(points) * (60 / len(y)*512/1000)
 
         return bpm
 

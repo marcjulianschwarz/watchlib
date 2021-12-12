@@ -1,10 +1,12 @@
 import streamlit as st
 import streamlit.components.v1 as components
-from watchlib.analysis.ecg_analysis import hrvs
+from watchlib import plot
+from watchlib.analysis.ecg_analysis import bpm, hrvs
 from watchlib.animation import WorkoutAnimation, ECGAnimation
 from watchlib.data_handler import DataLoader, CacheHandler, BBoxFilter, BBox
 from watchlib.utils import ECG
-from watchlib.analysis import analyse_ecg, heart_rate_variability
+from watchlib.analysis import heart_rate_variability, bpm
+from watchlib.plot import plot_ecg
 from datetime import datetime as dt
 import matplotlib.pyplot as plt
 import os
@@ -143,11 +145,12 @@ def start():
             if st.session_state.selected_ecg is None:
                     st.error("Please specify a health path in the sidebar first.")
             else:
-                bpm, fig = analyse_ecg(st.session_state.selected_ecg, plot=True)
+                bpm_num = bpm(st.session_state.selected_ecg)
+                fig = plot_ecg(st.session_state.selected_ecg)
                 hrv = heart_rate_variability(st.session_state.selected_ecg)
                 
                 st.session_state.ecg_fig = fig
-                st.write("Heartbeats per minute: " + str(round(bpm)))
+                st.write("Heartbeats per minute: " + str(round(bpm_num)))
                 st.write("Heartrate variability: " + str(round(hrv, 2)))
                 st.write(st.session_state.ecg_fig)
 
