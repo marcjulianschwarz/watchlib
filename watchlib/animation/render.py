@@ -14,7 +14,6 @@ from abc import ABC, abstractmethod
 class HealthAnimation(ABC):
 
     resolution: float = 0.08
-    color_on: str = "elevation"
 
     interval: int = 10
     fig_size = (5, 5)
@@ -31,9 +30,6 @@ class HealthAnimation(ABC):
 
     def set_fig_size(self, shape: Tuple[int, int]):
         self.fig_size = shape
-
-    def set_color_on(self, color_on: str):
-        self.color_on = color_on
     
     def set_resolution(self, resolution: int):
         self.resolution = resolution
@@ -44,6 +40,11 @@ class HealthAnimation(ABC):
 
 
 class WorkoutAnimation(HealthAnimation):
+
+    color_on: str = "elevation"
+
+    def set_color_on(self, color_on: str):
+        self.color_on = color_on
 
     # Project latitude and longitude to x and y coordinate
     def project_to_xy(self, lon: float, lat: float) -> Tuple[float, float]:
