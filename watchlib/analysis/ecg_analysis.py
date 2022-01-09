@@ -8,7 +8,7 @@ from typing import List
 from watchlib.analysis.analysis_ecg_utils import bpm_points, hrvs, hrvs_pairwise
 
 
-def bpm(ecg: ECG, a: float = 50, d: float = 180, r:float = 3, sample_rate:int = 512, plot: bool = False) -> int:
+def bpm(ecg: ECG, a: float = 50, d: float = 180, r:float = 3, sample_rate:float = 512, plot: bool = False) -> int:
         """
             Calculates heart rate (bpm) from ecg data.
 
@@ -20,7 +20,7 @@ def bpm(ecg: ECG, a: float = 50, d: float = 180, r:float = 3, sample_rate:int = 
         """
         x, y = ecg.x, ecg.y
         points = bpm_points(ecg, a, d, r)
-        bpm = len(points) * (60 / len(y)*512/1000)
+        bpm = len(points) * (60 / (len(y) / sample_rate))
 
         return bpm
 
