@@ -1,10 +1,11 @@
 import sys
 sys.path.append("../")
+
 import os
 from datetime import datetime as dt
 from watchlib.plot import plot_ecg
 from watchlib.analysis import heart_rate_variability, bpm
-from watchlib.data_handler import DataLoader, CacheHandler, BBoxFilter
+from watchlib.data_handler import DataLoader, CacheHandler, CountryFilter, DiagonalBBoxFilter, FilterPipeline
 from watchlib.animation import WorkoutAnimation, constants
 import streamlit.components.v1 as components
 import streamlit as st
@@ -25,7 +26,7 @@ def set_selected_route():
 
 
 def set_selected_country():
-    st.session_state.selected_bbox = BBoxFilter.countries[st.session_state.country_option]
+    st.session_state.selected_bbox = CountryFilter.countries[st.session_state.country_option]
 
 
 def set_selected_ecg():
@@ -60,46 +61,41 @@ def start():
         if "all_routes" in st.session_state:
             st.selectbox(
                 "Select a country",
-                (BBoxFilter.countries.keys()),
+                (CountryFilter.countries.keys()),
                 key="country_option",
                 on_change=set_selected_country
             )
 
-            st.session_state.selected_bbox = BBoxFilter.countries[st.session_state.country_option]
-            st.session_state.c_filtered_routes = BBoxFilter(
-                st.session_state.all_routes).filter(st.session_state.selected_bbox)
+            st.session_state.selected_country = CountryFilter.countries[st.session_state.country_option]
 
-            st.checkbox(
-                "Filter out small routes",
-                value=True,
-                key="filter_small_routes"
+            st.slider(
+                "Diagonal distance of bbox",
+                min_value=float(DiagonalBBoxFilter.min_bbox(st.session_state.all_routes)),
+                max_value=float(DiagonalBBoxFilter.max_bbox(st.session_state.all_routes)),
+                value=1.0,
+                step=0.5,
+                key="filter_distance"
             )
-
-            if st.session_state.filter_small_routes:
-                if "selected_bbox" in st.session_state:
-                    st.slider(
-                        "Diagonal distance of bbox",
-                        min_value=float(BBoxFilter(
-                            st.session_state.c_filtered_routes).min_bbox()),
-                        max_value=float(BBoxFilter(
-                            st.session_state.c_filtered_routes).max_bbox()),
-                        value=1.0,
-                        step=0.5,
-                        key="filter_distance"
-                    )
+            
         else:
             st.write("Load the data to apply filters.")
 
-    if "c_filtered_routes" in st.session_state:
 
-        if st.session_state.filter_small_routes:
-            bigger_routes = BBoxFilter(st.session_state.c_filtered_routes).filter_small_routes(
-                tolerance=st.session_state.filter_distance)
-            st.session_state.cs_filtered_routes = bigger_routes
+    if "selected_country" in st.session_state and "filter_distance" in st.session_state:
+
+        routes = st.session_state.all_routes
+        cf = CountryFilter(st.session_state.selected_country)
+        dbf = DiagonalBBoxFilter(st.session_state.filter_distance)
+
+        filter_pipeline = FilterPipeline(["country_filter", "diagonal_bbox_filter"], [cf, dbf])
+        filtered_routes = filter_pipeline.filter(routes)
+        st.session_state.filtered_routes = filtered_routes
+
+        if "filtered_routes" in st.session_state:
 
             st.sidebar.selectbox(
                 'Select a route',
-                ([route.name for route in st.session_state.cs_filtered_routes]),
+                ([route.name for route in st.session_state.filtered_routes]),
                 key="route_option",
                 on_change=set_selected_route
             )
@@ -110,17 +106,12 @@ def start():
                 key="color_on"
             )
 
-        else:
-            st.sidebar.selectbox(
-                'Select a route',
-                ([route.name for route in st.session_state.cs_filtered_routes]),
-                key="route_option",
-                on_change=set_selected_route
-            )
-
+        
         route = [route for route in st.session_state.all_routes if route.name ==
-                 st.session_state.route_option][0]
-        st.session_state.selected_route = route
+                 st.session_state.route_option]
+        if len(route) > 0:
+            route = route[0]
+            st.session_state.selected_route = route
 
     if "selected_route" in st.session_state:
         st.write("## Workout Animation")
