@@ -1,6 +1,7 @@
 from watchlib.utils import *
 from watchlib.analysis.analysis_utils import slopes_for
 from typing import List
+import numpy as np
 
 
 def bpm_points(ecg: ECG, a: float = 50, d: float = 180, r:float = 3, slopes=None):

@@ -5,7 +5,8 @@ import os
 from datetime import datetime as dt
 from watchlib.plot import plot_ecg
 from watchlib.analysis import heart_rate_variability, bpm
-from watchlib.data_handler import DataLoader, CacheHandler, CountryFilter, DiagonalBBoxFilter, FilterPipeline
+from watchlib.data_handler import DataLoader, CacheHandler
+from watchlib.filtering import CountryFilter, DiagonalBBoxFilter, FilterPipeline
 from watchlib.animation import WorkoutAnimation, constants
 import streamlit.components.v1 as components
 import streamlit as st
@@ -16,8 +17,8 @@ example_path = "/Users/marcbookpro/Documents/Code/watchlib/data/apple_health_exp
 
 def header():
     st.write("# Watchlib Demo")
-    st.write("**Example path:**")
-    st.write(f"*{example_path}*")
+    #st.write("**Example path:**")
+    #st.write(f"*{example_path}*")
 
 
 def set_selected_route():
@@ -43,8 +44,8 @@ def start():
     header()
 
     st.sidebar.write("## Export path:")
-    st.session_state.health_path = st.sidebar.text_input(
-        "Path to Health Export", value=example_path)
+    st.session_state.health_path = example_path
+    st.sidebar.text_input("Path to Health Export")
     st.session_state.cached_route_animations_path = "{st.session_state.health_path}/workout-routes/cached_animations"
     dl = DataLoader(st.session_state.health_path)
     ch = CacheHandler(st.session_state.health_path)
@@ -70,8 +71,8 @@ def start():
 
             st.slider(
                 "Diagonal distance of bbox",
-                min_value=float(DiagonalBBoxFilter.min_bbox(st.session_state.all_routes)),
-                max_value=float(DiagonalBBoxFilter.max_bbox(st.session_state.all_routes)),
+                min_value=float(0),
+                max_value=float(100),
                 value=1.0,
                 step=0.5,
                 key="filter_distance"
@@ -172,7 +173,7 @@ def start():
 
     if "ecg_fig" in st.session_state:
         st.session_state.plot_path = st.text_input(
-            "Path to save plot", "/Users/macbookpro/Desktop/Plots and animations")
+            "Path to save plot", "")
         if st.button("Save plot"):
             filename = f"plot_{dt.now().timestamp()}.png"
             st.session_state.ecg_fig.savefig(

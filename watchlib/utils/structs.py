@@ -1,7 +1,5 @@
 from typing import Tuple
 import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
 import xml.etree.ElementTree as ET
 from abc import ABC, abstractmethod
 from datetime import datetime as dt
@@ -96,7 +94,7 @@ class WorkoutRoute:
 
     start: dt
     end: dt
-    length_seconds: float
+    duration_sec: float
 
     def __init__(self, data, name: str):
         if isinstance(data, pd.DataFrame):
@@ -110,7 +108,7 @@ class WorkoutRoute:
         start, end, time = self.times()
         self.start = start
         self.end = end
-        self.length_seconds = time
+        self.duration_sec = time
         
     def __getitem__(self, key):
         return self.route[key]
