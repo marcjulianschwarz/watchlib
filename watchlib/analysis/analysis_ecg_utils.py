@@ -4,7 +4,7 @@ from typing import List
 import numpy as np
 
 
-def bpm_points(ecg: ECG, a: float = 50, d: float = 180, r:float = 3, slopes=None):
+def bpm_points(ecg: ECG, a: float = 50, d: float = 180, r: float = 3, slopes=None):
 
     x, y = ecg.x, ecg.y
     points = list(zip(x, y))
@@ -39,6 +39,7 @@ def hrvs(ecg: ECG) -> List[float]:
         hrvs.append(np.abs((dist[i + 1] - dist[i])))
     return hrvs
 
+
 def hrvs_pairwise(ecg: ECG) -> List[float]:
     dist = heartbeat_distances_ms(ecg)
     hrvs = []
@@ -57,6 +58,7 @@ def split_between_heartbeats(ecg: ECG):
     for i in range(0, len(points) - 1):
         splits.append(ecg.data.iloc[points[i]:points[i+1]])
     return splits
+
 
 def split_around_heartbeats(ecg: ECG):
     points = bpm_points(ecg)

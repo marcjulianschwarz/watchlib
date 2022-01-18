@@ -5,6 +5,7 @@ import numpy as np
 import json
 from datetime import datetime as dt
 
+
 class BBox:
 
     min_lon: float
@@ -51,7 +52,6 @@ class DiagonalBBoxFilter(BBoxFilter):
     def __init__(self, diagonal_distance: float):
         self.diagonal_distance = diagonal_distance
 
-    
     def __haversine(lat1: float, lat2: float, lon1: float, lon2: float) -> float:
         """
             Calculates distance between two points on earth in km
@@ -60,10 +60,10 @@ class DiagonalBBoxFilter(BBoxFilter):
 
         latd = lat2 - lat1
         lond = lon2 - lon1
-        R = 6372.8 # Earth radius in km
-        d = 2*R*np.arcsin(np.sqrt(np.sin(latd/2)**2 + np.cos(lat1)*np.cos(lat2)*np.sin(lond/2)**2))
+        R = 6372.8  # Earth radius in km
+        d = 2*R*np.arcsin(np.sqrt(np.sin(latd/2)**2 +
+                          np.cos(lat1)*np.cos(lat2)*np.sin(lond/2)**2))
         return d
-
 
     def __haversine_for_route(route: WorkoutRoute) -> float:
         lat1, lat2 = route["lat"].min(), route["lat"].max()
@@ -72,12 +72,14 @@ class DiagonalBBoxFilter(BBoxFilter):
 
     @staticmethod
     def max_bbox(routes: List[WorkoutRoute]) -> float:
-        distances = [DiagonalBBoxFilter.__haversine_for_route(route) for route in routes]
+        distances = [DiagonalBBoxFilter.__haversine_for_route(
+            route) for route in routes]
         return max(distances)
 
     @staticmethod
     def min_bbox(routes: List[WorkoutRoute]) -> float:
-        distances = [DiagonalBBoxFilter.__haversine_for_route(route) for route in routes]
+        distances = [DiagonalBBoxFilter.__haversine_for_route(
+            route) for route in routes]
         return min(distances)
 
     def simple_dist(self, lat1: float, lat2: float, lon1: float, lon2: float) -> Tuple[float, float]:
@@ -116,9 +118,8 @@ class CountryFilter(BBoxFilter):
 
     def __init__(self, country_bbox: BBox):
         self.country_bbox = country_bbox
-        #self.load_country_bboxes()
+        # self.load_country_bboxes()
 
-    
     def load_country_bboxes(self, path: str):
         with open(path, "r") as f:
             countries_json = json.load(f)
@@ -129,9 +130,8 @@ class CountryFilter(BBoxFilter):
                 max_lat = countries_json[country]["ne"]["lat"]
                 max_lon = countries_json[country]["ne"]["lon"]
 
-                self.countries[country] = BBox(min_lon, min_lat, max_lon, max_lat)
-
-
+                self.countries[country] = BBox(
+                    min_lon, min_lat, max_lon, max_lat)
 
     def check_country_bbox(self, country: str, bbox: BBox) -> bool:
         country_bbox = self.countries[country]
@@ -139,18 +139,16 @@ class CountryFilter(BBoxFilter):
         min_lon_r, min_lat_r, max_lon_r, max_lat_r = bbox.get_values()
         return (min_lon_r > min_lon) and (min_lat_r > min_lat) and (max_lon_r < max_lon) and (max_lat_r < max_lat)
 
-
     def route_countries(self, routes: List[WorkoutRoute]) -> List[str]:
         countries = []
         bboxes = self.route_bboxes(routes)
         for bbox in bboxes:
             for country in self.countries:
                 if self.check_country_bbox(country, bbox):
-                    countries.append(country)           
+                    countries.append(country)
         return countries
 
     def filter(self, routes: List[WorkoutRoute]) -> List[WorkoutRoute]:
-        
         """
             routes: routes that should be filtered
         """
@@ -167,15 +165,15 @@ class CountryFilter(BBoxFilter):
 
 class TimeFilter(Filter):
 
-    def __init__(self, _from: dt=None, _to: dt=None, min_duration_sec=0, max_duration_sec=0):
+    def __init__(self, _from: dt = None, _to: dt = None, min_duration_sec=0, max_duration_sec=0):
         if _from is None:
             self._from = dt.fromtimestamp(0)
         else:
             self._from = _from
-        
+
         if _to is None:
             self._to = dt.now()
-        else: 
+        else:
             self._to = _to
 
         self.min_duration_sec = min_duration_sec
@@ -198,7 +196,6 @@ class TimeFilter(Filter):
         return max([route.end.timestamp() for route in routes])
 
 
-
 class FilterPipeline:
 
     def __init__(self, filter_names: List[str], filters: List[Filter]):
@@ -207,8 +204,8 @@ class FilterPipeline:
 
     def filter(self, data):
         filtered_data = data
-        
+
         for filter in self.filters:
             filtered_data = filter.filter(filtered_data)
-        
+
         return filtered_data

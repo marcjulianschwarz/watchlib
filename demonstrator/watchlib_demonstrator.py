@@ -1,24 +1,23 @@
 import sys
 sys.path.append("../")
-
-import os
-from datetime import datetime as dt
-from watchlib.plot import plot_ecg
-from watchlib.analysis import heart_rate_variability, bpm
-from watchlib.data_handler import DataLoader, CacheHandler
-from watchlib.filtering import CountryFilter, DiagonalBBoxFilter, FilterPipeline
-from watchlib.animation import WorkoutAnimation, constants
-import streamlit.components.v1 as components
 import streamlit as st
+import streamlit.components.v1 as components
+from watchlib.animation import WorkoutAnimation, constants
+from watchlib.filtering import CountryFilter, DiagonalBBoxFilter, FilterPipeline
+from watchlib.data_handler import DataLoader, CacheHandler
+from watchlib.analysis import heart_rate_variability, bpm
+from watchlib.plot import plot_ecg
+from datetime import datetime as dt
+import os
 
 
-example_path = "/Users/marcbookpro/Documents/Code/watchlib/data/apple_health_export"
+example_path = "path/to/your/apple_health_export"
 
 
 def header():
     st.write("# Watchlib Demo")
     #st.write("**Example path:**")
-    #st.write(f"*{example_path}*")
+    # st.write(f"*{example_path}*")
 
 
 def set_selected_route():
@@ -67,7 +66,8 @@ def start():
                 on_change=set_selected_country
             )
 
-            st.session_state.selected_country = CountryFilter.countries[st.session_state.country_option]
+            st.session_state.selected_country = CountryFilter.countries[
+                st.session_state.country_option]
 
             st.slider(
                 "Diagonal distance of bbox",
@@ -77,10 +77,9 @@ def start():
                 step=0.5,
                 key="filter_distance"
             )
-            
+
         else:
             st.write("Load the data to apply filters.")
-
 
     if "selected_country" in st.session_state and "filter_distance" in st.session_state:
 
@@ -88,7 +87,8 @@ def start():
         cf = CountryFilter(st.session_state.selected_country)
         dbf = DiagonalBBoxFilter(st.session_state.filter_distance)
 
-        filter_pipeline = FilterPipeline(["country_filter", "diagonal_bbox_filter"], [cf, dbf])
+        filter_pipeline = FilterPipeline(
+            ["country_filter", "diagonal_bbox_filter"], [cf, dbf])
         filtered_routes = filter_pipeline.filter(routes)
         st.session_state.filtered_routes = filtered_routes
 
@@ -107,7 +107,6 @@ def start():
                 key="color_on"
             )
 
-        
         route = [route for route in st.session_state.all_routes if route.name ==
                  st.session_state.route_option]
         if len(route) > 0:
@@ -147,7 +146,8 @@ def start():
     if "ecgs" not in st.session_state:
         if st.sidebar.button("Load electrocardiogram data"):
             st.session_state.ecgs = dl.load_ecgs()
-            st.sidebar.success(f"{len(st.session_state.ecgs)} ecgs have been loaded.")
+            st.sidebar.success(
+                f"{len(st.session_state.ecgs)} ecgs have been loaded.")
 
     if "ecgs" in st.session_state:
         st.sidebar.selectbox('Select an ECG', [
@@ -186,7 +186,8 @@ def start():
         if st.sidebar.button("Load health data"):
             data = ch.load_cached_export_data()
             st.session_state.data = data
-            st.sidebar.success(f"{len(list(data.keys()))} dataframes have been loaded.")
+            st.sidebar.success(
+                f"{len(list(data.keys()))} dataframes have been loaded.")
 
     if "data" in st.session_state:
         st.sidebar.selectbox('Select a key', list(

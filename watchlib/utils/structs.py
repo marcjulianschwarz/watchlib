@@ -4,6 +4,7 @@ import xml.etree.ElementTree as ET
 from abc import ABC, abstractmethod
 from datetime import datetime as dt
 
+
 class ECG:
 
     def __init__(self, data: pd.DataFrame, name: str):
@@ -15,8 +16,8 @@ class ECG:
     def read_ecg(self, ecg: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame]:
         name = ecg.columns[1]
         ecg = ecg.rename(columns={
-                ecg.columns[0]: "name",
-                ecg.columns[1]: "value"})
+            ecg.columns[0]: "name",
+            ecg.columns[1]: "value"})
 
         meta_data = ecg.iloc[:9]
         meta_data = dict(zip(meta_data.name, meta_data.value))
@@ -25,9 +26,10 @@ class ECG:
         data = ecg[9:].dropna().astype("int32")
 
         return data, meta_data
-    
+
     def __getitem__(self, key):
         return self.data[key]
+
 
 class ECGWave(ABC):
 
@@ -50,21 +52,26 @@ class ECGWave(ABC):
     def rate(self):
         raise NotImplementedError
 
+
 class PWave(ECGWave):
     def __init__(self):
         pass
+
 
 class QWave(ECGWave):
     def __init__(self):
         pass
 
+
 class RWave(ECGWave):
     def __init__(self):
         pass
 
+
 class SWave(ECGWave):
     def __init__(self):
         super().__init__()
+
 
 class TWave(ECGWave):
     def __init__(self):
@@ -86,7 +93,6 @@ class QRSComplex:
         raise NotImplementedError
 
 
-
 class WorkoutRoute:
 
     route: pd.DataFrame
@@ -103,36 +109,36 @@ class WorkoutRoute:
             self.route = self.__read_route(data)
         else:
             raise ValueError("This workout type does not exist")
-        
+
         self.name = name
         start, end, time = self.times()
         self.start = start
         self.end = end
         self.duration_sec = time
-        
+
     def __getitem__(self, key):
         return self.route[key]
 
     @property
     def lon(self):
         return self.route["lon"]
-    
+
     @property
     def lat(self):
         return self.route["lat"]
-    
+
     @property
     def time(self):
         return self.route["time"]
-    
+
     @property
     def elevation(self):
         return self.route["elevation"]
-    
+
     @property
     def speed(self):
         return self.route["speed"]
-    
+
     @property
     def course(self):
         return self.route["course"]
@@ -140,7 +146,7 @@ class WorkoutRoute:
     @property
     def hAcc(self):
         return self.route["hAcc"]
-    
+
     @property
     def vAcc(self):
         return self.route["vAcc"]
@@ -156,8 +162,6 @@ class WorkoutRoute:
             return start, end, time
         else:
             return None, None, 0
-    
-    
 
     def __read_route(self, data: ET.Element) -> pd.DataFrame:
 
@@ -202,4 +206,3 @@ class WorkoutRoute:
                     data["vAcc"].append(float(vAcc))
 
         return pd.DataFrame(data)
-

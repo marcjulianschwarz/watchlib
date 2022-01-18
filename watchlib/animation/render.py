@@ -1,15 +1,16 @@
+from abc import ABC, abstractmethod
+from typing import Tuple
+from datetime import datetime as dt
+from matplotlib import animation
+from mpl_toolkits.mplot3d.art3d import Line3DCollection
+import pandas as pd
+import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
 
 from watchlib.utils.structs import WorkoutRoute
 matplotlib.rcParams['animation.embed_limit'] = 2**128
-import numpy as np
-import pandas as pd
-from mpl_toolkits.mplot3d.art3d import Line3DCollection
-from matplotlib import animation
-from datetime import datetime as dt
-from typing import Tuple
-from abc import ABC, abstractmethod
+
 
 class HealthAnimation(ABC):
 
@@ -30,10 +31,10 @@ class HealthAnimation(ABC):
 
     def set_fig_size(self, shape: Tuple[int, int]):
         self.fig_size = shape
-    
+
     def set_resolution(self, resolution: int):
         self.resolution = resolution
-    
+
     @abstractmethod
     def animate(self):
         pass
@@ -65,10 +66,10 @@ class WorkoutAnimation(HealthAnimation):
         elevation = self.data["elevation"]
         s = self.data[self.color_on]
 
-        x, y, elevation, s = (x[::strip], y[::strip], elevation[::strip], s[::strip])
+        x, y, elevation, s = (x[::strip], y[::strip],
+                              elevation[::strip], s[::strip])
 
         return x, y, elevation, s, title
-        
 
     def plot_route(self):
         x, y, elevation, s, title = self.data_for_plotting()
@@ -95,7 +96,6 @@ class WorkoutAnimation(HealthAnimation):
 
         return fig, ax, lc, segments
 
-
     def animate(self, rotation: bool = True):
 
         fig, ax, lc, segments = self.plot_route()
@@ -109,13 +109,13 @@ class WorkoutAnimation(HealthAnimation):
             if rotation:
                 ax.view_init(10, i/5)
             return [fig]
-        
-        ani = animation.FuncAnimation(fig, update, init_func=init, frames=len(segments), interval=self.interval, blit=True)
+
+        ani = animation.FuncAnimation(fig, update, init_func=init, frames=len(
+            segments), interval=self.interval, blit=True)
         return ani
 
 
 class ECGAnimation(HealthAnimation):
-
 
     def animate(self, length=1, res=6, speed=1, sample=512):
 
@@ -123,11 +123,12 @@ class ECGAnimation(HealthAnimation):
         ecg: pd.DataFrame = self.data
 
         data = ecg["name"].iloc[:int(len(ecg["name"])/l)].iloc[::res]
-        x_values = [xx for xx in range(0, len(ecg["name"].iloc[:int(len(ecg["name"])/l)]))][::res]
+        x_values = [xx for xx in range(
+            0, len(ecg["name"].iloc[:int(len(ecg["name"])/l)]))][::res]
 
         fig, ax = plt.subplots(figsize=(20, 5))
         ax.set_xlim(-10, len(ecg["name"])+10)
-        ax.set_ylim(data.min() -20, data.max()+20)
+        ax.set_ylim(data.min() - 20, data.max()+20)
 
         # INIT
         y = data.iloc[0]
@@ -135,7 +136,8 @@ class ECGAnimation(HealthAnimation):
         line, = ax.plot(x, y)
 
         if self.data.meta_data:
-            plt.title("Date: " + self.data.meta_data["Aufzeichnungsdatum"] + "     Classification: " + self.data.meta_data["Klassifizierung"])
+            plt.title("Date: " + self.data.meta_data["Aufzeichnungsdatum"] +
+                      "     Classification: " + self.data.meta_data["Klassifizierung"])
 
         def update(i):
             y = data.iloc[:i]
@@ -147,6 +149,5 @@ class ECGAnimation(HealthAnimation):
 
         ani = animation.FuncAnimation(
             fig, update, interval=1000/(sample/res)/speed, blit=True, frames=int(sample/res*30*length))
-        
+
         return ani
-        
