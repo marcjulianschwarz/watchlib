@@ -14,8 +14,6 @@ class DataLoader:
         self.export_path = path + "/Export.xml"
         self.ecg_path = path + "/electrocardiograms"
         self.workout_path = path + "/workout-routes"
-        self.cached_routes_path = self.workout_path + "/cached_routes"
-        self.cached_export_data_path = self.path + "/cached_export_data"
 
     def load_export_data(self) -> dict:
 
@@ -82,6 +80,11 @@ class CacheHandler:
         self.cached_routes_path = os.path.join(
             self.workout_path, "cached_routes")
         self.cached_export_data_path = os.path.join(path, "cached_export_data")
+
+        if not os.path.exists(self.cached_routes_path):
+            os.makedirs(self.cached_routes_path, exist_ok=True)
+        if not os.path.exists(self.cached_export_data_path):
+            os.makedirs(self.cached_export_data_path, exist_ok=True)
 
     def __cache_route(self, route: WorkoutRoute):
         if not os.path.exists(self.cached_routes_path):
