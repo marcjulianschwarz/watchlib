@@ -28,7 +28,7 @@ class ECG:
         return data, meta_data
 
     def __getitem__(self, key):
-        return self.data[key]
+        return self.meta_data[key]
 
 
 class ECGWave(ABC):
