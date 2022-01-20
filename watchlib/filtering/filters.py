@@ -32,7 +32,7 @@ class Filter(ABC):
         pass
 
 
-# Basic filter class to filter with bounding boxes
+# Abstract filter class to filter with bounding boxes
 class BBoxFilter(Filter):
 
     def set_routes(self, routes: List[WorkoutRoute]):
@@ -99,6 +99,8 @@ class DiagonalBBoxFilter(BBoxFilter):
             on a tolerance in km.
         """
 
+        print(
+            f"[Filter]\tFiltering out routes with a shorter diagonal than {self.diagonal_distance}km.")
         filtered_routes = []
         for route in routes:
             h = DiagonalBBoxFilter.__haversine_for_route(route)
@@ -153,6 +155,8 @@ class CountryFilter(BBoxFilter):
             routes: routes that should be filtered
         """
 
+        print(f"[Filter]\tFiltering only routes from {self.country_bbox}.")
+
         min_lon, min_lat, max_lon, max_lat = self.country_bbox.get_values()
 
         filtered_routes = []
@@ -180,6 +184,9 @@ class TimeFilter(Filter):
         self.max_duration_sec = max_duration_sec
 
     def filter(self, routes: List[WorkoutRoute]) -> List[WorkoutRoute]:
+
+        print(
+            f"[Filter]\tFiltering out routes from {self._from.date()} to {self._to.date()} which are {self.min_duration_sec} to {self.max_duration_sec} seconds long.")
         filtered_routes = []
         for route in routes:
             if route.start and route.end and route.duration_sec:

@@ -98,6 +98,8 @@ class WorkoutAnimation(HealthAnimation):
 
     def animate(self, rotation: bool = True):
 
+        print("[Workout Animation]\tAnimating workout route...")
+
         fig, ax, lc, segments = self.plot_route()
 
         def init():

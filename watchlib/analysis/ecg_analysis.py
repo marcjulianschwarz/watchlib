@@ -18,6 +18,9 @@ def bpm(ecg: ECG, a: float = 50, d: float = 180, r: float = 3, sample_rate: floa
         sample_rate: in Hz
         plot: plot ecg, slope and heart beat points
     """
+
+    print(f"[ECG Analysis]\tCalculating bpm for {ecg.name} ...")
+
     x, y = ecg.x, ecg.y
     points = bpm_points(ecg, a, d, r)
     bpm = len(points) * (60 / (len(y) / sample_rate))
@@ -30,10 +33,12 @@ def bpm(ecg: ECG, a: float = 50, d: float = 180, r: float = 3, sample_rate: floa
 # --------------------------
 
 def heart_rate_variability(ecg: ECG) -> float:
+    print(f"Calculating hrv for {ecg.name} ...")
     return np.mean(hrvs(ecg))
 
 
 def heart_rate_variability_pairwise(ecg: ECG) -> float:
+    print(f"Calculating pairwise hrv for {ecg.name} ...")
     return np.mean(hrvs_pairwise(ecg))
 
 # --------------------------
