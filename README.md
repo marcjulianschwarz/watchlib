@@ -1,6 +1,8 @@
 # watchlib
 *watchlib* is a python library for analyzing and visualizing Apple Watch health data.
 
+**Disclaimer: ** This is still a work in progres! If you want to help with the development feel free to join me on [Discord](https://discord.gg/TYmZkn9ezf) where we can discuss together or write an [Issue](https://github.com/marcjulianschwarz/watchlib/issues/new) here on GitHub.
+
 ### Features:
 - `DataLoader`
 - `CacheHandler`
