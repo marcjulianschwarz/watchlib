@@ -7,25 +7,35 @@ from datetime import datetime as dt
 
 class ECG:
 
-    def __init__(self, data: pd.DataFrame, name: str):
+    def __init__(self, data: str, name: str):
         self.data, self.meta_data = self.read_ecg(data)
         self.name = name
-        self.x = [xx for xx in range(0, len(self.data["name"]))]
-        self.y = list(self.data["name"])
+        self.x = [xx for xx in range(0, len(self.data))]
+        self.y = self.data
 
-    def read_ecg(self, ecg: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame]:
-        name = ecg.columns[1]
-        ecg = ecg.rename(columns={
-            ecg.columns[0]: "name",
-            ecg.columns[1]: "value"})
+    def read_ecg(self, ecg: str) -> Tuple[pd.DataFrame, pd.DataFrame]:
+        data = ecg.split("\n")
+        m_data = data[:12]
+        meta_data = {}
+        for m in m_data:
+            if m != "" and "," in m: # makes sure that the row isnt empty and that it is a key,value pair
+                x = m.split(",")
+                if len(x) == 3:  # if commas were used instead of points for floats
+                    meta_data[x[0]] = x[1] + "." + x[2]
+                else:
+                    meta_data[x[0]] = x[1]
 
-        meta_data = ecg.iloc[:9]
-        meta_data = dict(zip(meta_data.name, meta_data.value))
-        meta_data["name"] = name
+        data = data[13:]
+        
+        values = []
+        for d in data:
+            if d != "":
+                values.append(float(d.replace(",", ".")))
 
-        data = ecg[9:].dropna().astype("int32")
+        #print(meta_data)
 
-        return data, meta_data
+        return values, meta_data
+
 
     def __getitem__(self, key):
         return self.meta_data[key]

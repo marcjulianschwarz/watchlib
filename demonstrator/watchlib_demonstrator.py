@@ -1,7 +1,7 @@
 import sys
 sys.path.append("../")
 
-from watchlib.utils.structs import WorkoutRoute
+from watchlib.utils.structs import ECG, WorkoutRoute
 import streamlit as st
 import streamlit.components.v1 as components
 from watchlib.animation import WorkoutAnimation, constants
@@ -35,6 +35,9 @@ def set_selected_data():
 
 def route_sort(route: WorkoutRoute):
     return route.name
+
+def ecg_sort(ecg: ECG):
+    return ecg.name
 
 def start():
 
@@ -163,6 +166,7 @@ def start():
         if "ecgs" not in st.session_state:
             if st.sidebar.button("Load electrocardiogram data"):
                 st.session_state.ecgs = dl.load_ecgs()
+                st.session_state.ecgs.sort(key=ecg_sort)
                 st.sidebar.success(
                     f"{len(st.session_state.ecgs)} ecgs have been loaded.")
 

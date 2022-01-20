@@ -62,7 +62,8 @@ class DataLoader(DataManager):
     # ----------
 
     def load_ecg(self, ecg_name: str) -> ECG:
-        return ECG(pd.read_csv(os.path.join(self.ecg_path, ecg_name), on_bad_lines="skip"), ecg_name)
+        with open(os.path.join(self.ecg_path, ecg_name), "r", encoding="utf-8") as f:
+            return ECG(f.read(), ecg_name)
 
     def load_ecgs(self) -> List[ECG]:
         filenames = self.get_filenames_for(self.ecg_path)
