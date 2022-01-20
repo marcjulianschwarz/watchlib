@@ -1,3 +1,4 @@
+from fileinput import filename
 import xml.etree.ElementTree as ET
 import pandas as pd
 import os
@@ -7,13 +8,30 @@ from watchlib.utils import ECG, WorkoutRoute
 from abc import ABC
 
 
-class DataLoader:
+class DataManager(ABC):
+
+    def get_filenames_for(self, path: str) -> List[str]:
+        filenames = os.listdir(path)
+        filenames = [f for f in filenames if os.path.isfile(
+            os.path.join(path, f)) and not f.startswith(".")]
+        return filenames
+
+
+class DataLoader(DataManager):
 
     def __init__(self, path: str) -> None:
         self.path = path
         self.export_path = path + "/Export.xml"
         self.ecg_path = path + "/electrocardiograms"
         self.workout_path = path + "/workout-routes"
+
+    def supports(self, data: str):
+        if data == "ecg":
+            return os.path.exists(self.ecg_path)
+        if data == "routes":
+            return os.path.exists(self.workout_path)
+        if data == "health":
+            return os.path.exists(self.export_path)
 
     def load_export_data(self) -> dict:
 
@@ -32,24 +50,28 @@ class DataLoader:
             time = record.get("creationDate")
             data[key].append((time, value))
 
-        print(f"Loading {len(data)} health dataframes")
+        print(f"[Data Loader]\tLoading {len(data)} health dataframes...")
 
         for key in data.keys():
             data[key] = pd.DataFrame(data[key], columns=["time", "value"])
 
         return data
 
+    # ----------
     # ECG
+    # ----------
 
     def load_ecg(self, ecg_name: str) -> ECG:
-        return ECG(pd.read_csv(os.path.join(self.ecg_path, ecg_name)), ecg_name)
+        return ECG(pd.read_csv(os.path.join(self.ecg_path, ecg_name), on_bad_lines="skip"), ecg_name)
 
     def load_ecgs(self) -> List[ECG]:
-        files = os.listdir(self.ecg_path)
-        print(f"Loading {len(files)} electrocardiograms.")
-        return [self.load_ecg(filename) for filename in files]
+        filenames = self.get_filenames_for(self.ecg_path)
+        print(f"[Data Loader]\tLoading {len(filenames)} electrocardiograms...")
+        return [self.load_ecg(filename) for filename in filenames]
 
+    # ----------
     # Workout Routes
+    # ----------
 
     def load_route(self, route_name: str) -> WorkoutRoute:
         with open(os.path.join(self.workout_path, route_name), "rb") as f:
@@ -58,19 +80,18 @@ class DataLoader:
             return WorkoutRoute(route, route_name)
 
     def load_routes(self) -> List[WorkoutRoute]:
-        filenames = os.listdir(self.workout_path)
-        filenames = [filename for filename in filenames if os.path.isfile(
-            os.path.join(self.workout_path, filename))]
-        print(f"Loading {len(filenames)} workout routes.")
+        filenames = self.get_filenames_for(self.workout_path)
+        print(f"[Data Loader]\tLoading {len(filenames)} workout routes...")
         routes = []
         for filename in filenames:
-            if filename == ".DS_Store":
-                continue
             routes.append(self.load_route(filename))
         return routes
 
+    def count_routes(self):
+        return len(self.get_filenames_for(self.workout_path))
 
-class CacheHandler:
+
+class CacheHandler(DataManager):
 
     def __init__(self, path: str) -> None:
         self.path = path
@@ -80,11 +101,14 @@ class CacheHandler:
         self.cached_routes_path = os.path.join(
             self.workout_path, "cached_routes")
         self.cached_export_data_path = os.path.join(path, "cached_export_data")
+        self.cached_route_animations_path = os.path.join(self.workout_path, "cached_animations")
 
         if not os.path.exists(self.cached_routes_path):
             os.makedirs(self.cached_routes_path, exist_ok=True)
         if not os.path.exists(self.cached_export_data_path):
             os.makedirs(self.cached_export_data_path, exist_ok=True)
+        if not os.path.exists(self.cached_route_animations_path):
+            os.makedirs(self.cached_route_animations_path, exist_ok=True)
 
     def __cache_route(self, route: WorkoutRoute):
         if not os.path.exists(self.cached_routes_path):
@@ -92,8 +116,14 @@ class CacheHandler:
         route.route.to_csv(os.path.join(
             self.cached_routes_path, route.name), index=False)
 
+    def isCached(self, data: str):
+        if data == "routes":
+            return len(self.get_filenames_for(self.cached_routes_path)) > 1
+        elif data == "export":
+            return len(self.get_filenames_for(self.cached_export_data_path)) > 1
+
     def cache_routes(self, routes: List[WorkoutRoute]):
-        print(f"Caching {len(routes)} routes.")
+        print(f"[Cache Handler]\tCaching {len(routes)} routes...")
         for route in routes:
             self.__cache_route(route)
 
@@ -102,13 +132,18 @@ class CacheHandler:
 
     def load_cached_routes(self) -> List[WorkoutRoute]:
         routes = []
-        for filename in os.listdir(self.cached_routes_path):
+        filenames = self.get_filenames_for(self.cached_routes_path)
+        print(f"[Cache Handler]\tLoadig {len(filenames)} cached routes...")
+        for filename in filenames:
             routes.append(self.load_cached_route(filename))
         return routes
 
+    # ----------
     # Cached export data
+    # ----------
+
     def cache_export_data(self, data: dict):
-        print(f"Caching {len(data)} health dataframes.")
+        print(f"[Cache Handler]\tCaching {len(data)} health dataframes...")
         for key in data:
             df = data[key]
             df.to_csv(os.path.join(self.cached_export_data_path,
@@ -125,7 +160,9 @@ class CacheHandler:
 
     def load_cached_export_data(self) -> Dict[str, pd.DataFrame]:
         data = {}
-        for filename in os.listdir(self.cached_export_data_path):
+        filenames = self.get_filenames_for(self.cached_export_data_path)
+        print(f"[Cache Handler]\tLoading {len(filenames)} cached health dataframes...")
+        for filename in filenames:
             id = self.get_identifier_name(filename.split(".csv")[0])
             data[id] = self.load_cached_export_data_by_key(filename)
         return data
