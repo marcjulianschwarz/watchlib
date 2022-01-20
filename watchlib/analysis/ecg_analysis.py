@@ -33,12 +33,12 @@ def bpm(ecg: ECG, a: float = 50, d: float = 180, r: float = 3, sample_rate: floa
 # --------------------------
 
 def heart_rate_variability(ecg: ECG) -> float:
-    print(f"Calculating hrv for {ecg.name} ...")
+    print(f"[ECG Analysis]\tCalculating hrv for {ecg.name} ...")
     return np.mean(hrvs(ecg))
 
 
 def heart_rate_variability_pairwise(ecg: ECG) -> float:
-    print(f"Calculating pairwise hrv for {ecg.name} ...")
+    print(f"[ECG Analysis]\tCalculating pairwise hrv for {ecg.name} ...")
     return np.mean(hrvs_pairwise(ecg))
 
 # --------------------------
