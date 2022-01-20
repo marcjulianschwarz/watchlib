@@ -104,12 +104,13 @@ class CacheHandler(DataManager):
         self.cached_export_data_path = os.path.join(path, "cached_export_data")
         self.cached_route_animations_path = os.path.join(self.workout_path, "cached_animations")
 
-        if not os.path.exists(self.cached_routes_path):
-            os.makedirs(self.cached_routes_path, exist_ok=True)
-        if not os.path.exists(self.cached_export_data_path):
-            os.makedirs(self.cached_export_data_path, exist_ok=True)
-        if not os.path.exists(self.cached_route_animations_path):
-            os.makedirs(self.cached_route_animations_path, exist_ok=True)
+        if "apple_health_export" in self.workout_path: # Only create folders if path is a apple export path
+            if not os.path.exists(self.cached_routes_path):
+                os.makedirs(self.cached_routes_path, exist_ok=True)
+            if not os.path.exists(self.cached_export_data_path):
+                os.makedirs(self.cached_export_data_path, exist_ok=True)
+            if not os.path.exists(self.cached_route_animations_path):
+                os.makedirs(self.cached_route_animations_path, exist_ok=True)
 
     def __cache_route(self, route: WorkoutRoute):
         if not os.path.exists(self.cached_routes_path):
