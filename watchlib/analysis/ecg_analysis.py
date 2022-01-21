@@ -1,7 +1,4 @@
-import typing
 import numpy as np
-import matplotlib.pyplot as plt
-from numpy.lib import split
 from watchlib.utils import ECG, ECGWave
 from typing import List
 
@@ -19,7 +16,7 @@ def bpm(ecg: ECG, a: float = 50, d: float = 180, r: float = 3, sample_rate: floa
         plot: plot ecg, slope and heart beat points
     """
 
-    print(f"[ECG Analysis]\tCalculating bpm for {ecg.name} ...")
+    print(f"[ECG Analysis]\t\tCalculating bpm for {ecg.name} ...")
 
     x, y = ecg.x, ecg.y
     points = bpm_points(ecg, a, d, r)
@@ -33,12 +30,12 @@ def bpm(ecg: ECG, a: float = 50, d: float = 180, r: float = 3, sample_rate: floa
 # --------------------------
 
 def heart_rate_variability(ecg: ECG) -> float:
-    print(f"[ECG Analysis]\tCalculating hrv for {ecg.name} ...")
+    print(f"[ECG Analysis]\t\tCalculating hrv for {ecg.name} ...")
     return np.mean(hrvs(ecg))
 
 
 def heart_rate_variability_pairwise(ecg: ECG) -> float:
-    print(f"[ECG Analysis]\tCalculating pairwise hrv for {ecg.name} ...")
+    print(f"[ECG Analysis]\t\tCalculating pairwise hrv for {ecg.name} ...")
     return np.mean(hrvs_pairwise(ecg))
 
 # --------------------------

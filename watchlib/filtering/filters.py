@@ -100,7 +100,7 @@ class DiagonalBBoxFilter(BBoxFilter):
         """
 
         print(
-            f"[Filter]\tFiltering out routes with a shorter diagonal than {self.diagonal_distance}km.")
+            f"[Filter]\t\tFiltering out routes with a shorter diagonal than {self.diagonal_distance}km.")
         filtered_routes = []
         for route in routes:
             h = DiagonalBBoxFilter.__haversine_for_route(route)
@@ -155,7 +155,7 @@ class CountryFilter(BBoxFilter):
             routes: routes that should be filtered
         """
 
-        print(f"[Filter]\tFiltering only routes from {self.country_bbox}.")
+        print(f"[Filter]\t\tFiltering only routes from {self.country_bbox}.")
 
         min_lon, min_lat, max_lon, max_lat = self.country_bbox.get_values()
 
@@ -186,7 +186,7 @@ class TimeFilter(Filter):
     def filter(self, routes: List[WorkoutRoute]) -> List[WorkoutRoute]:
 
         print(
-            f"[Filter]\tFiltering out routes from {self._from.date()} to {self._to.date()} which are {self.min_duration_sec} to {self.max_duration_sec} seconds long.")
+            f"[Filter]\t\tFiltering out routes from {self._from.date()} to {self._to.date()} which are {self.min_duration_sec} to {self.max_duration_sec} seconds long.")
         filtered_routes = []
         for route in routes:
             if route.start and route.end and route.duration_sec:

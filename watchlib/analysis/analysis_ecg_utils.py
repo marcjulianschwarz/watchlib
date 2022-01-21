@@ -56,7 +56,7 @@ def split_between_heartbeats(ecg: ECG):
     points = bpm_points(ecg)
     splits = []
     for i in range(0, len(points) - 1):
-        splits.append(ecg.data.iloc[points[i]:points[i+1]])
+        splits.append(ecg.data[points[i]:points[i+1]])
     return splits
 
 
@@ -68,5 +68,5 @@ def split_around_heartbeats(ecg: ECG):
         split_half = int(splits_hb[i] / 2)
         start = points[i] - split_half
         end = points[i] + split_half
-        splits.append(ecg.data.iloc[start:end])
+        splits.append(ecg.data[start:end])
     return splits
