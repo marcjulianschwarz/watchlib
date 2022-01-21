@@ -49,6 +49,11 @@ def start():
     dl = DataLoader(st.session_state.health_path)
     ch = CacheHandler(st.session_state.health_path)
 
+    if st.button("Delete export cache."):
+        ch.delete_all_export_caches()
+    if st.button("Delete workout route cache."):
+        ch.delete_all_route_caches()
+
     if dl.supports("routes"): 
         st.sidebar.write("## Workout Route Data")
 
@@ -61,6 +66,7 @@ def start():
                 else:
                     st.sidebar.info(f"Loading {dl.count_routes()} routes. This might take some time.")
                     routes = dl.load_routes()
+                    st.sidebar.info(f"Caching {dl.count_routes()} routes. This might take some time.")
                     ch.cache_routes(routes)
                 routes.sort(key=route_sort)
                 st.session_state.all_routes = routes
@@ -140,9 +146,9 @@ def start():
             if st.button("Start workout animation"):
                 with st.spinner("Rendering workout route..."):
 
-                    if st.session_state.save_animation and os.path.exists(os.path.join(ch.cached_route_animations_path, st.session_state.selected_route.name + st.session_state.color_on + ".html")):
-                        with open(os.path.join(ch.cached_route_animations_path, st.session_state.selected_route.name + st.session_state.color_on + ".html"), "r") as f:
-                            st.session_state.route_html = f.read()
+                    name = f"{st.session_state.selected_route.name}-{st.session_state.color_on}.html"
+                    if st.session_state.save_animation and ch.is_animation_cached(name):
+                        st.session_state.route_html = ch.load_cached_route_animation(name)
                     else:
                         wa = WorkoutAnimation(st.session_state.selected_route)
                         wa.set_fig_size(shape=(6, 6))
@@ -152,11 +158,9 @@ def start():
                         st.session_state.route_html = html
                     components.html(st.session_state.route_html, height=800)
 
-                if "route_html" in st.session_state and not os.path.exists(os.path.join(ch.cached_route_animations_path, st.session_state.selected_route.name + ".html")):
-                    filename = f"{st.session_state.selected_route.name}-{st.session_state.color_on}.html"
-                    with open(os.path.join(ch.cached_route_animations_path, filename), "w") as f:
-                        f.write(st.session_state.route_html)
-                    st.write(f"Cached animation: *{filename}*")
+                if "route_html" in st.session_state and not ch.is_animation_cached(name):
+                    ch.cache_route_animation(st.session_state.route_html, name)
+                    st.write(f"Cached animation: *{name}*")
 
     # ----------
     # ECG
