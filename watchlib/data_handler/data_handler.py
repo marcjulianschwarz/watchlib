@@ -1,10 +1,11 @@
+import multiprocessing
 import xml.etree.ElementTree as ET
-from numpy import delete
 import pandas as pd
 import os
 from typing import List, Dict
 from watchlib.utils import ECG, WorkoutRoute
 from abc import ABC
+from multiprocessing import Pool
 
 
 class DataManager(ABC):
@@ -41,23 +42,24 @@ class DataLoader(DataManager):
 
     def load_export_data(self) -> dict:
 
-        if self.export_path_exists:
+        if self.supports("health"):
             tree = ET.parse(self.export_path)
             root = tree.getroot()
             records = root.findall('Record')
 
             data = {}
 
-            for x in records:
-                data[x.get("type")] = []
+            # Init all arrays
+            for record in records:
+                data[record.get("type")] = []
+
+            print(f"[Data Loader]\t\tLoading {len(data)} health dataframes...")
 
             for record in records:
                 key = record.get("type")
                 value = record.get("value")
                 time = record.get("creationDate")
                 data[key].append((time, value))
-
-            print(f"[Data Loader]\t\tLoading {len(data)} health dataframes...")
 
             for key in data.keys():
                 data[key] = pd.DataFrame(data[key], columns=["time", "value"])
@@ -77,7 +79,7 @@ class DataLoader(DataManager):
             return ECG(f.read(), ecg_name)
 
     def load_ecgs(self) -> List[ECG]:
-        if os.path.exists(self.ecg_path):
+        if self.supports("ecg"):
             filenames = self.get_filenames_for(self.ecg_path)
             print(f"[Data Loader]\t\tLoading {len(filenames)} electrocardiograms...")
             return [self.load_ecg(filename) for filename in filenames]
@@ -95,18 +97,26 @@ class DataLoader(DataManager):
                 encoding="utf-8")).getroot()
             return WorkoutRoute(route, route_name)
 
-    def load_routes(self) -> List[WorkoutRoute]:
-        if os.path.exists(self.workout_path):
-            filenames = self.get_filenames_for(self.workout_path)
-            print(f"[Data Loader]\t\tLoading {len(filenames)} workout routes...")
-            routes = []
-            for filename in filenames:
-                routes.append(self.load_route(filename))
-            return routes
-        else:
+    def load_routes(self, parallel=True) -> List[WorkoutRoute]:
+        if not self.supports("routes"):
             print("[ERROR] the workout-routes path doesnt exist.")
-            return []
+        else:
+            if parallel:
+                return self.load_routes_par()    
+            else:
+                return self.load_routes_seq()
+        
+    def load_routes_seq(self) -> List[WorkoutRoute]:
+        filenames = self.get_filenames_for(self.workout_path)
+        print(f"[Data Loader]\t\tLoading {len(filenames)} workout routes...")
+        return [self.load_route(filename) for filename in filenames]
 
+    def load_routes_par(self) -> List[WorkoutRoute]:
+        filenames = self.get_filenames_for(self.workout_path)
+        pool = Pool(multiprocessing.cpu_count())
+        print(f"[Data Loader]\t\tLoading {len(filenames)} workout routes in parallel...")
+        return pool.map(self.load_route, filenames)
+        
     def count_routes(self):
         return len(self.get_filenames_for(self.workout_path))
 
@@ -120,7 +130,9 @@ class CacheHandler(DataManager):
         self.cached_routes_path = os.path.join(self.workout_path, "cached_routes")
         self.cached_export_data_path = os.path.join(path, "cached_export_data")
         self.cached_route_animations_path = os.path.join(self.workout_path, "cached_animations")
+        self.__check_folders()
 
+    def __check_folders(self):
         if "apple_health_export" in self.workout_path: # Only create folders if path is an apple export path
             if not os.path.exists(self.cached_routes_path):
                 os.makedirs(self.cached_routes_path, exist_ok=True)
@@ -175,6 +187,7 @@ class CacheHandler(DataManager):
             self.cached_routes_path, route.name), index=False)
 
     def cache_routes(self, routes: List[WorkoutRoute]):
+        self.__check_folders()
         print(f"[Cache Handler]\t\tCaching {len(routes)} routes...")
         for route in routes:
             self.__cache_route(route)
@@ -183,26 +196,38 @@ class CacheHandler(DataManager):
         return WorkoutRoute(pd.read_csv(os.path.join(self.cached_routes_path, filename)), filename)
 
     def load_cached_routes(self) -> List[WorkoutRoute]:
-        routes = []
-        filenames = self.get_filenames_for(self.cached_routes_path)
-        print(f"[Cache Handler]\t\tLoadig {len(filenames)} cached routes...")
-        for filename in filenames:
-            routes.append(self.load_cached_route(filename))
-        return routes
+        if self.is_routes_cached():    
+            routes = []
+            filenames = self.get_filenames_for(self.cached_routes_path)
+            print(f"[Cache Handler]\t\tLoadig {len(filenames)} cached routes...")
+            for filename in filenames:
+                routes.append(self.load_cached_route(filename))
+            return routes
+        else:
+            print("[ERROR]\t\tThe routes havent been cached yet.")
+            return []
+
+    def is_routes_cached(self):
+        self.__check_folders()
+        return self.isCached("routes")
 
     # ---------
     # Cache route animations
     # ---------
 
     def cache_route_animation(self, html: str, name: str):
+        self.__check_folders()
         print(f"[Cache Handler]\t\tCaching animation: {name}")
         with open(os.path.join(self.cached_route_animations_path, name), "w") as f:
             f.write(html)
 
     def load_cached_route_animation(self, name: str):
-        print(f"[Cache Handler]\t\tLoading cached animation: {name}")
-        with open(os.path.join(self.cached_route_animations_path, name), "r") as f:
-            return f.read()
+        if self.is_animation_cached(name):
+            print(f"[Cache Handler]\t\tLoading cached animation: {name}")
+            with open(os.path.join(self.cached_route_animations_path, name), "r") as f:
+                return f.read()
+        else:
+            print(f"[ERROR]\t\tThe animation {name} hasnt been cached yet.")
 
     def is_animation_cached(self, name: str):
         return os.path.exists(os.path.join(self.cached_route_animations_path, name))
@@ -212,6 +237,7 @@ class CacheHandler(DataManager):
     # ----------
 
     def cache_export_data(self, data: dict):
+        self.__check_folders()
         print(f"[Cache Handler]\t\tCaching {len(data)} health dataframes...")
         for key in data:
             df = data[key]
@@ -228,10 +254,17 @@ class CacheHandler(DataManager):
         return pd.read_csv(os.path.join(self.cached_export_data_path, key))
 
     def load_cached_export_data(self) -> Dict[str, pd.DataFrame]:
-        data = {}
-        filenames = self.get_filenames_for(self.cached_export_data_path)
-        print(f"[Cache Handler]\t\tLoading {len(filenames)} cached health dataframes...")
-        for filename in filenames:
-            id = self.get_identifier_name(filename.split(".csv")[0])
-            data[id] = self.load_cached_export_data_by_key(filename)
-        return data
+        if self.is_export_data_cached():
+            data = {}
+            filenames = self.get_filenames_for(self.cached_export_data_path)
+            print(f"[Cache Handler]\t\tLoading {len(filenames)} cached health dataframes...")
+            for filename in filenames:
+                id = self.get_identifier_name(filename.split(".csv")[0])
+                data[id] = self.load_cached_export_data_by_key(filename)
+            return data
+        else:
+            print("[ERROR]\t\tExport data hasnt been cached yet.")
+            return {}
+
+    def is_export_data_cached(self):
+        return os.path.exists(self.cached_export_data_path)

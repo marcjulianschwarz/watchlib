@@ -195,16 +195,16 @@ class WorkoutRoute:
                 track_points = track_segment.findall('gpx:trkpt', ns)
                 for track_point in track_points:
 
-                    elevation = track_point.findall('gpx:ele', ns)[0].text
-                    time = track_point.findall('gpx:time', ns)[0].text
-                    extension = track_point.findall('gpx:extensions', ns)[0]
+                    elevation = track_point.find('gpx:ele', ns).text
+                    time = track_point.find('gpx:time', ns).text
+                    extension = track_point.find('gpx:extensions', ns)
 
                     lon = track_point.get("lon")
                     lat = track_point.get("lat")
-                    speed = extension.findall('gpx:speed', ns)[0].text
-                    course = extension.findall('gpx:course', ns)[0].text
-                    hAcc = extension.findall('gpx:hAcc', ns)[0].text
-                    vAcc = extension.findall('gpx:vAcc', ns)[0].text
+                    speed = extension.find('gpx:speed', ns).text
+                    course = extension.find('gpx:course', ns).text
+                    hAcc = extension.find('gpx:hAcc', ns).text
+                    vAcc = extension.find('gpx:vAcc', ns).text
 
                     data["lon"].append(float(lon))
                     data["lat"].append(float(lat))
