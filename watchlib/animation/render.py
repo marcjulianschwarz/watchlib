@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+import string
 from typing import Tuple
 from datetime import datetime as dt
 from matplotlib import animation
@@ -11,20 +12,12 @@ import matplotlib
 from watchlib.utils.structs import WorkoutRoute
 matplotlib.rcParams['animation.embed_limit'] = 2**128
 
+class AnimationConfig(ABC):
 
-class HealthAnimation(ABC):
-
-    resolution: float = 0.08
-
-    interval: int = 10
-    fig_size = (5, 5)
-
-    def __init__(self, data):
-        self.data = data
-
-    def set_options(self, options):
-        for option in options:
-            raise NotImplementedError
+    def __init__(self, interval, fig_size, resolution) -> None:
+        self.interval = interval
+        self.fig_size = fig_size
+        self.resolution = resolution
 
     def set_interval(self, interval: int):
         self.interval = interval
@@ -35,6 +28,31 @@ class HealthAnimation(ABC):
     def set_resolution(self, resolution: int):
         self.resolution = resolution
 
+class WorkoutAnimationConfig(AnimationConfig):
+
+    color_on = "elevation"
+    rotate = True
+
+    def __init__(self, interval, fig_size, resolution) -> None:
+        super().__init__(interval, fig_size, resolution)
+
+    def set_color_on(self, color_on: string):
+        self.color_on = color_on
+
+    def set_rotate(self, rotate: bool):
+        self.rotate = rotate
+
+
+
+class HealthAnimation(ABC):
+
+    config: AnimationConfig = AnimationConfig(10, (5,5), 0.08)
+
+    def __init__(self, data, config: AnimationConfig=None):
+        self.data = data
+        if config:
+            self.config = config
+    
     @abstractmethod
     def animate(self):
         pass
@@ -42,13 +60,15 @@ class HealthAnimation(ABC):
 
 class WorkoutAnimation(HealthAnimation):
 
-    color_on: str = "elevation"
+    config: WorkoutAnimationConfig
 
-    def set_color_on(self, color_on: str):
-        self.color_on = color_on
+    def __init__(self, data, config: WorkoutAnimationConfig = None):
+        super().__init__(data, config)
 
-    # Project latitude and longitude to x and y coordinate
-    def project_to_xy(self, lon: float, lat: float) -> Tuple[float, float]:
+    def set_config(self, config: WorkoutAnimationConfig):
+        self.config = config
+
+    def project_lonlat_to_xy(self, lon: float, lat: float) -> Tuple[float, float]:
         middle_of_map_lat = np.mean(lat)
         lon = lon*np.abs(np.cos(middle_of_map_lat))
         return lon, lat
@@ -61,10 +81,10 @@ class WorkoutAnimation(HealthAnimation):
 
     def data_for_plotting(self) -> Tuple[pd.DataFrame]:
         title = pd.to_datetime(self.data["time"].iloc[0]).date()
-        strip = int(1 / self.resolution)
-        x, y = self.project_to_xy(self.data["lon"], self.data["lat"])
+        strip = int(1 / self.config.resolution)
+        x, y = self.project_lonlat_to_xy(self.data["lon"], self.data["lat"])
         elevation = self.data["elevation"]
-        s = self.data[self.color_on]
+        s = self.data[self.config.color_on]
 
         x, y, elevation, s = (x[::strip], y[::strip],
                               elevation[::strip], s[::strip])
@@ -74,7 +94,7 @@ class WorkoutAnimation(HealthAnimation):
     def plot_route(self):
         x, y, elevation, s, title = self.data_for_plotting()
 
-        fig = plt.figure(figsize=self.fig_size)
+        fig = plt.figure(figsize=self.config.fig_size)
         ax = fig.add_subplot(111, projection='3d')
 
         segments = self.calculate_segments(x, y, elevation)
@@ -91,12 +111,12 @@ class WorkoutAnimation(HealthAnimation):
         ax.set_ylabel("Latitude")
         ax.set_zlabel("Elevation")
 
-        ax.text2D(0.05, 0.95, "Color:" + self.color_on, transform=ax.transAxes)
+        ax.text2D(0.05, 0.95, "Color:" + self.config.color_on, transform=ax.transAxes)
         plt.title(title)
 
         return fig, ax, lc, segments
 
-    def animate(self, rotation: bool = True):
+    def animate(self):
 
         print("[Workout Animation]\tAnimating workout route...")
 
@@ -108,12 +128,12 @@ class WorkoutAnimation(HealthAnimation):
 
         def update(i):
             lc.set_segments(segments[:i])
-            if rotation:
+            if self.config.rotate:
                 ax.view_init(10, i/5)
             return [fig]
 
         ani = animation.FuncAnimation(fig, update, init_func=init, frames=len(
-            segments), interval=self.interval, blit=True)
+            segments), interval=self.config.interval, blit=True)
         return ani
 
 

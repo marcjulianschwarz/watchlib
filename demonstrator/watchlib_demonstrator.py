@@ -14,7 +14,7 @@ import os
 
 
 def header():
-    st.write("# Watchlib Demo")
+    st.write("# Watchlib Demo")    
 
 def set_selected_route():
     st.session_state.selected_route = [
@@ -151,7 +151,7 @@ def start():
                         st.session_state.route_html = ch.load_cached_route_animation(name)
                     else:
                         wa = WorkoutAnimation(st.session_state.selected_route)
-                        wa.set_fig_size(shape=(6, 6))
+                        wa.config.set_fig_size(shape=(6, 6))
                         wa.set_color_on(st.session_state.color_on)
                         ani = wa.animate()
                         html = ani.to_jshtml()
@@ -188,7 +188,7 @@ def start():
                     st.error("Please specify a health path in the sidebar first.")
                 else:
                     bpm_num = bpm(st.session_state.selected_ecg)
-                    fig = plot_ecg(st.session_state.selected_ecg)
+                    fig = plot_ecg(st.session_state.selected_ecg, return_fig=True)
                     hrv = heart_rate_variability(st.session_state.selected_ecg)
 
                     st.session_state.ecg_fig = fig
