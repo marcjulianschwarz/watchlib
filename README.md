@@ -1,19 +1,12 @@
 # watchlib
-*watchlib* is a python library for analyzing and visualizing Apple Watch health data.
+*watchlib* is a python module for loading, analyzing and visualizing Apple Watch health data.
+A detailed documentation can be found in the [Wiki](https://github.com/marcjulianschwarz/watchlib/wiki). To see the module in action you can try out the [watchlib demonstrator](https://github.com/marcjulianschwarz/watchlib/tree/main/demonstrator) or look at some of the [demo notebooks](https://github.com/marcjulianschwarz/watchlib/tree/main/demos).
 
-**Disclaimer:** This is still a work in progres! If you want to help with the development feel free to join me on [Discord](https://discord.gg/TYmZkn9ezf) where we can discuss together or write an [Issue](https://github.com/marcjulianschwarz/watchlib/issues/new) here on GitHub.
+**Disclaimer:** This is still a work in progres! If you want to help with further development feel free to join me on [Discord](https://discord.gg/TYmZkn9ezf) where we can discuss together or write an [Issue](https://github.com/marcjulianschwarz/watchlib/issues/new) here on GitHub.
 
-### Features:
-- `DataLoader`
-- `CacheHandler`
-- `ECGAnimation`
-- `WorkoutAnimation`
-- `ecg_analysis`
-- `ECG`
-- `WorkoutRoute`
 
-## Get data from health export
-To use this Python package you first have to export the health data:
+## How to export Apple Watch health data
+To use this Python package you first have to export the health data like this:
 
 1. Open *Health* app
 2. Open your profile in the upper right corner
