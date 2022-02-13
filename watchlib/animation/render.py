@@ -1,7 +1,5 @@
 from abc import ABC, abstractmethod
-import string
 from typing import Tuple
-from datetime import datetime as dt
 from matplotlib import animation
 from mpl_toolkits.mplot3d.art3d import Line3DCollection
 import pandas as pd
@@ -9,48 +7,18 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
 
-from watchlib.utils.structs import WorkoutRoute
+from watchlib.utils.structs import ECG, WorkoutRoute
+from watchlib.animation.config import WorkoutAnimationConfig, ECGAnimationConfig, AnimationConfig
 matplotlib.rcParams['animation.embed_limit'] = 2**128
-
-class AnimationConfig(ABC):
-
-    def __init__(self, interval, fig_size, resolution) -> None:
-        self.interval = interval
-        self.fig_size = fig_size
-        self.resolution = resolution
-
-    def set_interval(self, interval: int):
-        self.interval = interval
-
-    def set_fig_size(self, shape: Tuple[int, int]):
-        self.fig_size = shape
-
-    def set_resolution(self, resolution: int):
-        self.resolution = resolution
-
-class WorkoutAnimationConfig(AnimationConfig):
-
-    color_on = "elevation"
-    rotate = True
-
-    def __init__(self, interval, fig_size, resolution) -> None:
-        super().__init__(interval, fig_size, resolution)
-
-    def set_color_on(self, color_on: string):
-        self.color_on = color_on
-
-    def set_rotate(self, rotate: bool):
-        self.rotate = rotate
-
 
 
 class HealthAnimation(ABC):
 
-    config: AnimationConfig = AnimationConfig(10, (5,5), 0.08)
+    config: AnimationConfig
 
     def __init__(self, data, config: AnimationConfig=None):
         self.data = data
-        if config:
+        if config is not None:
             self.config = config
     
     @abstractmethod
@@ -60,29 +28,29 @@ class HealthAnimation(ABC):
 
 class WorkoutAnimation(HealthAnimation):
 
-    config: WorkoutAnimationConfig
+    config: WorkoutAnimationConfig =  WorkoutAnimationConfig()
 
-    def __init__(self, data, config: WorkoutAnimationConfig = None):
+    def __init__(self, data: WorkoutRoute, config: WorkoutAnimationConfig=None):
         super().__init__(data, config)
 
     def set_config(self, config: WorkoutAnimationConfig):
         self.config = config
 
-    def project_lonlat_to_xy(self, lon: float, lat: float) -> Tuple[float, float]:
+    def __project_lonlat_to_xy(self, lon: float, lat: float) -> Tuple[float, float]:
         middle_of_map_lat = np.mean(lat)
         lon = lon*np.abs(np.cos(middle_of_map_lat))
         return lon, lat
 
     # Calculate line segments for coloring
-    def calculate_segments(self, x: pd.Series, y: pd.Series, elevation: pd.Series) -> np.ndarray:
+    def __calculate_segments(self, x: pd.Series, y: pd.Series, elevation: pd.Series) -> np.ndarray:
         points = np.array([x, y, elevation]).T.reshape(-1, 1, 3)
         segments = np.concatenate([points[:-1], points[1:]], axis=1)
         return segments
 
-    def data_for_plotting(self) -> Tuple[pd.DataFrame]:
+    def __data_for_plotting(self) -> Tuple[pd.DataFrame]:
         title = pd.to_datetime(self.data["time"].iloc[0]).date()
         strip = int(1 / self.config.resolution)
-        x, y = self.project_lonlat_to_xy(self.data["lon"], self.data["lat"])
+        x, y = self.__project_lonlat_to_xy(self.data["lon"], self.data["lat"])
         elevation = self.data["elevation"]
         s = self.data[self.config.color_on]
 
@@ -92,12 +60,12 @@ class WorkoutAnimation(HealthAnimation):
         return x, y, elevation, s, title
 
     def plot_route(self):
-        x, y, elevation, s, title = self.data_for_plotting()
+        x, y, elevation, s, title = self.__data_for_plotting()
 
         fig = plt.figure(figsize=self.config.fig_size)
         ax = fig.add_subplot(111, projection='3d')
 
-        segments = self.calculate_segments(x, y, elevation)
+        segments = self.__calculate_segments(x, y, elevation)
         norm = plt.Normalize(s.min(), s.max())
         lc = Line3DCollection(segments, cmap="viridis", norm=norm)
         lc.set_array(s)
@@ -116,7 +84,7 @@ class WorkoutAnimation(HealthAnimation):
 
         return fig, ax, lc, segments
 
-    def animate(self):
+    def animate(self) -> animation.FuncAnimation:
 
         print("[Workout Animation]\tAnimating workout route...")
 
@@ -139,30 +107,34 @@ class WorkoutAnimation(HealthAnimation):
 
 class ECGAnimation(HealthAnimation):
 
-    def animate(self, length=1, res=6, speed=1, sample=512):
+    config: ECGAnimationConfig = ECGAnimationConfig()
 
-        l = 1/length
-        ecg: pd.DataFrame = self.data
+    def __init__(self, data: ECG, config: ECGAnimationConfig=None):
+        super().__init__(data, config)
 
-        data = ecg["name"].iloc[:int(len(ecg["name"])/l)].iloc[::res]
-        x_values = [xx for xx in range(
-            0, len(ecg["name"].iloc[:int(len(ecg["name"])/l)]))][::res]
+    def set_config(self, config: ECGAnimationConfig):
+        self.config = config
+
+    def animate(self):
+
+        l = 1/self.config.length
+        ecg: ECG = self.data
+
+        data = ecg.y[:int(len(ecg.y)/l)][::self.config.resolution]
+        x_values = ecg.x[:int(len(ecg.y)/l)][::self.config.resolution]
 
         fig, ax = plt.subplots(figsize=(20, 5))
-        ax.set_xlim(-10, len(ecg["name"])+10)
-        ax.set_ylim(data.min() - 20, data.max()+20)
+        ax.set_xlim(-10, len(ecg.y)+10)
+        ax.set_ylim(min(data) - 20, max(data)+20)
 
         # INIT
-        y = data.iloc[0]
+        y = data[0]
         x = x_values[0]
         line, = ax.plot(x, y)
 
-        if self.data.meta_data:
-            plt.title("Date: " + self.data.meta_data["Aufzeichnungsdatum"] +
-                      "     Classification: " + self.data.meta_data["Klassifizierung"])
 
         def update(i):
-            y = data.iloc[:i]
+            y = data[:i]
             x = x_values[:i]
 
             line.set_xdata(x)
@@ -170,6 +142,6 @@ class ECGAnimation(HealthAnimation):
             return line,
 
         ani = animation.FuncAnimation(
-            fig, update, interval=1000/(sample/res)/speed, blit=True, frames=int(sample/res*30*length))
+            fig, update, interval=self.config.interval, blit=True, frames=int(self.config.sample/self.config.resolution*30*self.config.length))
 
         return ani

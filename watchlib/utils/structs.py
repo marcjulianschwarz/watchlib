@@ -121,7 +121,7 @@ class WorkoutRoute:
             raise ValueError("This workout type does not exist")
 
         self.name = name
-        start, end, time = self.times()
+        start, end, time = self.__times()
         self.start = start
         self.end = end
         self.duration_sec = time
@@ -161,7 +161,7 @@ class WorkoutRoute:
     def vAcc(self):
         return self.route["vAcc"]
 
-    def times(self):
+    def __times(self):
         if not self["time"].empty:
             start = self["time"].iloc[0]
             end = self["time"].iloc[-1]

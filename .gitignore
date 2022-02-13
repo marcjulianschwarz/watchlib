@@ -137,3 +137,7 @@ animations/
 data/cached_routes/
 .vscode/
 data/
+assets/
+.obsidian/
+*.ann
+tests/
