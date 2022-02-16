@@ -1,16 +1,17 @@
 import sys
 sys.path.append("../")
 
-from watchlib.utils.structs import ECG, WorkoutRoute
 import streamlit as st
 import streamlit.components.v1 as components
-from watchlib.animation import WorkoutAnimation, constants
+from datetime import datetime as dt
+
+# Own imports
+from watchlib.animation import WorkoutAnimation, constants, WorkoutAnimationConfig
 from watchlib.filtering import CountryFilter, DiagonalBBoxFilter, TimeFilter, FilterPipeline
 from watchlib.data_handler import DataLoader, CacheHandler
 from watchlib.analysis import heart_rate_variability, bpm
 from watchlib.plot import plot_ecg
-from datetime import datetime as dt
-import os
+from watchlib.utils.structs import ECG, WorkoutRoute
 
 
 def header():
@@ -150,9 +151,11 @@ def start():
                     if st.session_state.save_animation and ch.is_animation_cached(name):
                         st.session_state.route_html = ch.load_cached_route_animation(name)
                     else:
-                        wa = WorkoutAnimation(st.session_state.selected_route)
-                        wa.config.set_fig_size(shape=(6, 6))
-                        wa.set_color_on(st.session_state.color_on)
+                        config = WorkoutAnimationConfig(
+                            color_on=st.session_state.color_on, 
+                            fig_size=(6,6)
+                        )
+                        wa = WorkoutAnimation(st.session_state.selected_route, config=config)
                         ani = wa.animate()
                         html = ani.to_jshtml()
                         st.session_state.route_html = html

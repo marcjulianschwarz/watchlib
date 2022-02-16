@@ -114,8 +114,11 @@ class DataLoader(DataManager):
     def load_routes_par(self) -> List[WorkoutRoute]:
         filenames = self.get_filenames_for(self.workout_path)
         pool = Pool(multiprocessing.cpu_count())
+        routes = pool.map(self.load_route, filenames)
+        pool.close()
+        pool.join()
         print(f"[Data Loader]\t\tLoading {len(filenames)} workout routes in parallel...")
-        return pool.map(self.load_route, filenames)
+        return routes
         
     def count_routes(self):
         return len(self.get_filenames_for(self.workout_path))
