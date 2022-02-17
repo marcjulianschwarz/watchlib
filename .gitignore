@@ -141,3 +141,6 @@ assets/
 .obsidian/
 *.ann
 tests/
+z_*
+*.json
+experimental/
