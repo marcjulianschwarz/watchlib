@@ -22,18 +22,6 @@ pip install watchlib
 pip install --upgrade watchlib
 ```
 
-## Run watchlib demonstrator
-First you will have to download the demonstrator Python file [here](https://github.com/marcjulianschwarz/watchlib/blob/main/demonstrator/watchlib_demonstrator.py).
-
-To run it, you will need to install streamlit:
-```
-pip install streamlit
-```
-and watchlib:
-```
-pip install watchlib
-```
-
 After you have installed both modules, navigate to the `watchlib_demonstrator.py` file and run the following command:
 ```
 streamlit run watchlib_demonstrator.py
