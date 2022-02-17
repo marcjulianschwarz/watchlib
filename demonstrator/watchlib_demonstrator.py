@@ -1,6 +1,3 @@
-import sys
-sys.path.append("../")
-
 import streamlit as st
 import streamlit.components.v1 as components
 from datetime import datetime as dt
@@ -9,13 +6,14 @@ from datetime import datetime as dt
 from watchlib.animation import WorkoutAnimation, constants, WorkoutAnimationConfig
 from watchlib.filtering import CountryFilter, DiagonalBBoxFilter, TimeFilter, FilterPipeline
 from watchlib.data_handler import DataLoader, CacheHandler
-from watchlib.analysis import heart_rate_variability, bpm
-from watchlib.plot import plot_ecg
+from watchlib.analysis import heart_rate_variability, bpm, stats
+from watchlib.plot import plot_ecg, distribution_for
 from watchlib.utils.structs import ECG, WorkoutRoute
 
 
 def header():
     st.write("# Watchlib Demo")    
+
 
 def set_selected_route():
     st.session_state.selected_route = [
@@ -229,19 +227,32 @@ def start():
                     f"{len(list(data))} dataframes have been loaded.")
 
         if "data" in st.session_state:
-            st.sidebar.selectbox('Select a key', list(
-                st.session_state.data.keys()), key="data_option", on_change=set_selected_data)
+            st.sidebar.selectbox('Select a key', sorted(list(
+                st.session_state.data.keys())), key="data_option", on_change=set_selected_data)
             selected_data = st.session_state.data[st.session_state.data_option]
             st.session_state.selected_data = selected_data
 
         if "data" in st.session_state:
             st.write("## Health Data")
+            
+            # left_c, right_c = st.columns(2)
+            # with left_c:
+            st.write("### Distribution")
+            st.slider("Bins", min_value=0, max_value=400, value=35, step=1, key="bins")
+            st.write(distribution_for(st.session_state.selected_data, st.session_state.bins))
+            # with right_c:
+            #     _max, _min = stats(st.session_state.selected_data)
+            #     st.write("### Stats")
+            #     st.write(f"Max: {_max}")
+            #     st.write(f"Min {_min}")
+            
             if st.button("Show dataframe"):
                 if st.session_state.selected_data is None:
                     st.error("Please specify a health path in the sidebar first.")
                 else:
                     st.write(f"## {st.session_state.data_option}")
                     st.write(st.session_state.selected_data)
+            
 
 
 if __name__ == "__main__":

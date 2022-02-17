@@ -17,10 +17,30 @@ To install watchlib simply run:
 pip install watchlib
 ```
 
+## Update to newest version
+```
+pip install --upgrade watchlib
+```
+
+## Run watchlib demonstrator
+First you will have to download the demonstrator Python file [here](https://github.com/marcjulianschwarz/watchlib/blob/main/demonstrator/watchlib_demonstrator.py).
+
+To run it, you will need to install streamlit:
+```
+pip install streamlit
+```
+and watchlib:
+```
+pip install watchlib
+```
+
+After you have installed both modules, navigate to the `watchlib_demonstrator.py` file and run the following command:
+```
+streamlit run watchlib_demonstrator.py
+```
 
 
 ## How to export Apple Watch health data
-To use this Python package you first have to export the health data like this:
 
 1. Open *Health* app
 2. Open your profile in the upper right corner
