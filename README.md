@@ -5,7 +5,7 @@
 </a>
 </p>
     
-**watchlib** is a python module providing tools for loading, analyzing and visualizing Apple Watch health data. 
+**watchlib** is a Python module providing tools for loading, analyzing and visualizing Apple Watch health data. 
 
 A detailed documentation can be found in the [Wiki](https://github.com/marcjulianschwarz/watchlib/wiki). To see the module in action you can try out the [watchlib demonstrator](https://github.com/marcjulianschwarz/watchlib-demos) or look at some of the [demo notebooks](https://github.com/marcjulianschwarz/watchlib-demos).
 
