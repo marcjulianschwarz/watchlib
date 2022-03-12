@@ -39,19 +39,5 @@ pip install --upgrade watchlib
 9. Last step is to unzip the "Export.zip" file
 
 
-
-## Streamlit demo
-<div style="display:flex">
-<img style="width:600px" src="https://user-images.githubusercontent.com/67844154/139928737-b6043660-24c3-47d6-9ea5-e54b461c9740.png"/>
-<img style="width:600px" src="https://user-images.githubusercontent.com/67844154/139928829-7f27742e-f3a6-4494-9247-9fb81f79a1e4.png"/>
-</div>
-
-    
-## ECG heartbeat calculation
-<img style="width:900px" src="https://user-images.githubusercontent.com/67844154/139928546-002b8fbb-94c2-471b-ac05-b5cf64454b9e.png"/>
-<img style="width:900px" src="https://user-images.githubusercontent.com/67844154/139928552-d6952176-14b5-4431-a3c6-db7eb893dd22.png"/>
-
-
-## Workout Animation
-Watch an example workout animation <a href="https://www.marc-julian.de/watchlib/animations/animation_1635878885.729083.html">here</a>
-
+## Contributions
+Icon design: <a href="https://www.olli-graphics.de">Olli Graphics</a>
