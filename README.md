@@ -1,3 +1,7 @@
+<p align="center">
+<img width="400px" alt="Watchlib 3" src="https://user-images.githubusercontent.com/67844154/158024240-bad9e9a2-1031-48b0-9d3a-e1118b885855.png">
+</p>
+
 # watchlib
 <p>
 <a href="https://pypi.org/project/watchlib/">
