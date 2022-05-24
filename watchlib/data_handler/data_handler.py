@@ -6,6 +6,7 @@ from typing import List, Dict
 from watchlib.utils import ECG, WorkoutRoute
 from abc import ABC
 from multiprocessing import Pool
+import json
 
 
 class DataManager(ABC):
@@ -26,6 +27,12 @@ class DataManager(ABC):
             os.path.join(path, f)) and not f.startswith(".")]
         return filenames
 
+    def get_identifier_name(self, id):
+        if "Identifier" in id:
+            return id.split("Identifier")[1]
+        else:
+            return id.split("Type")[1]
+
 
 class DataLoader(DataManager):
 
@@ -40,7 +47,7 @@ class DataLoader(DataManager):
         if data == "health":
             return os.path.exists(self.export_path)
 
-    def load_export_data(self) -> dict:
+    def load_health_data(self) -> Dict[str, pd.DataFrame]:
 
         if self.supports("health"):
             tree = ET.parse(self.export_path)
@@ -57,12 +64,15 @@ class DataLoader(DataManager):
 
             for record in records:
                 key = record.get("type")
+                key = self.get_identifier_name(key)
                 value = record.get("value")
                 time = record.get("creationDate")
                 data[key].append((time, value))
 
             for key in data.keys():
-                data[key] = pd.DataFrame(data[key], columns=["time", "value"])
+                df = pd.DataFrame(data[key], columns=["time", "value"])
+                df["time"] = pd.to_datetime(df["time"])
+                data[key] = df
 
             return data
         else:
@@ -145,12 +155,12 @@ class CacheHandler(DataManager):
                 os.makedirs(self.cached_route_animations_path, exist_ok=True)
 
     def delete_all_caches(self):
-        self.delete_all_export_caches()
+        self.delete_all_health_data_caches()
         self.delete_all_route_caches()
 
-    def delete_all_export_caches(self):
+    def delete_all_health_data_caches(self):
         for file in self.get_filenames_for(self.cached_export_data_path):
-            self.delete_export_cache(file)
+            self.delete_health_data_cache(file)
 
     def delete_all_route_caches(self):
         for file in self.get_filenames_for(self.cached_routes_path):
@@ -161,7 +171,7 @@ class CacheHandler(DataManager):
             self.delete_animation_cache(file)
 
     # Delete individual caches
-    def delete_export_cache(self, name: str):
+    def delete_health_data_cache(self, name: str):
         print(f"[Cache Handler]\t\tDELETE {name}")
         os.remove(os.path.join(self.cached_export_data_path, name))
 
@@ -173,10 +183,10 @@ class CacheHandler(DataManager):
         print(f"[Cache Handler]\t\tDELETE {name}")
         os.remove(os.path.join(self.cached_route_animations_path, name))
 
-    def isCached(self, data: str):
+    def isCached(self, data: str) -> bool:
         if data == "routes":
             return len(self.get_filenames_for(self.cached_routes_path)) > 1
-        elif data == "export":
+        elif data == "health":
             return len(self.get_filenames_for(self.cached_export_data_path)) > 1
         elif data == "animation":
             return 
@@ -195,16 +205,16 @@ class CacheHandler(DataManager):
         for route in routes:
             self.__cache_route(route)
 
-    def load_cached_route(self, filename) -> WorkoutRoute:
+    def __load_route(self, filename) -> WorkoutRoute:
         return WorkoutRoute(pd.read_csv(os.path.join(self.cached_routes_path, filename)), filename)
 
-    def load_cached_routes(self) -> List[WorkoutRoute]:
+    def load_routes(self) -> List[WorkoutRoute]:
         if self.is_routes_cached():    
             routes = []
             filenames = self.get_filenames_for(self.cached_routes_path)
             print(f"[Cache Handler]\t\tLoadig {len(filenames)} cached routes...")
             for filename in filenames:
-                routes.append(self.load_cached_route(filename))
+                routes.append(self.__load_route(filename))
             return routes
         else:
             print("[ERROR]\t\tThe routes havent been cached yet.")
@@ -224,7 +234,7 @@ class CacheHandler(DataManager):
         with open(os.path.join(self.cached_route_animations_path, name), "w") as f:
             f.write(html)
 
-    def load_cached_route_animation(self, name: str):
+    def load_route_animation(self, name: str) -> str:
         if self.is_animation_cached(name):
             print(f"[Cache Handler]\t\tLoading cached animation: {name}")
             with open(os.path.join(self.cached_route_animations_path, name), "r") as f:
@@ -239,7 +249,7 @@ class CacheHandler(DataManager):
     # Cached export data
     # ----------
 
-    def cache_export_data(self, data: dict):
+    def cache_health_data(self, data: dict):
         self.__check_folders()
         print(f"[Cache Handler]\t\tCaching {len(data)} health dataframes...")
         for key in data:
@@ -247,27 +257,81 @@ class CacheHandler(DataManager):
             df.to_csv(os.path.join(self.cached_export_data_path,
                       f"{key}.csv"), index=False)
 
-    def get_identifier_name(self, id):
-        if "Identifier" in id:
-            return id.split("Identifier")[1]
-        else:
-            return id.split("Type")[1]
-
-    def load_cached_export_data_by_key(self, key: str) -> pd.DataFrame:
+    def load_health_data_by_key(self, key: str) -> pd.DataFrame:
         return pd.read_csv(os.path.join(self.cached_export_data_path, key))
 
-    def load_cached_export_data(self) -> Dict[str, pd.DataFrame]:
-        if self.is_export_data_cached():
+    def load_health_data(self) -> Dict[str, pd.DataFrame]:
+        if self.is_health_data_cached():
             data = {}
             filenames = self.get_filenames_for(self.cached_export_data_path)
             print(f"[Cache Handler]\t\tLoading {len(filenames)} cached health dataframes...")
             for filename in filenames:
                 id = self.get_identifier_name(filename.split(".csv")[0])
-                data[id] = self.load_cached_export_data_by_key(filename)
+                data[id] = self.load_health_data_by_key(filename)
             return data
         else:
             print("[ERROR]\t\tExport data hasnt been cached yet.")
             return {}
 
-    def is_export_data_cached(self):
+    def is_health_data_cached(self):
         return os.path.exists(self.cached_export_data_path)
+
+
+
+class HealthDataHandler(DataManager):
+
+    def __init__(self, health_data: dict):
+        self.identifiers = self.load_identifiers()
+        self.health_data = health_data
+
+    def load_identifiers(self):
+        with open(os.path.join(os.path.dirname(__file__), "hk_identifiers.json"), "r") as f:
+            return json.load(f)
+
+    def get_event_identfiers(self):
+        events = []
+        for id in self.identifiers:
+            events.extend(self.identifiers[id]["event"])
+        return events
+
+    def get_quantity_identfiers(self, types: List[str] = ["sum", "mean"]):
+        quantities = []
+        for id in self.identifiers:
+            quantity = self.identifiers[id]["quantity"]
+            if "sum" in types:
+                quantities.extend(quantity["sum"])
+            if "mean" in types:
+                quantities.extend(quantity["mean"])
+        return quantities
+
+    def get_data_for(self, identifiers: List[str]):
+        data = {}
+        for id in identifiers:
+            if id in self.health_data:
+                data[id] = self.health_data[id]
+            #else:   
+                #print("[WARNING]\t\tThe identifier {id} is not in health data.")
+        return data
+
+    def is_identifier(self, identifier: str, aggregate: str):
+        for id in self.identifiers:
+            if identifier in self.identifiers[id]["quantity"][aggregate]:
+                return True
+        return False
+
+    def group(self, identifiers, by = lambda x: x.split(" ")[0]):
+
+        data = self.get_data_for(identifiers)
+
+        grouped_dfs = []
+        for d in data:
+
+            if self.is_identifier(d, "sum"):
+                x = data[d].set_index("time").groupby(by).sum()
+            if self.is_identifier(d, "mean"):
+                x = data[d].set_index("time").groupby(by).mean()
+            x.columns = [d]
+            grouped_dfs.append(x)
+
+        return pd.concat(grouped_dfs, axis=1)
+
