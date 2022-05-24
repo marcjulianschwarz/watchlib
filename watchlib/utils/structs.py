@@ -127,6 +127,8 @@ class WorkoutRoute:
         self.duration_sec = time
 
     def __getitem__(self, key):
+        if (key == "name"):
+            return self.name
         return self.route[key]
 
     @property
@@ -160,6 +162,7 @@ class WorkoutRoute:
     @property
     def vAcc(self):
         return self.route["vAcc"]
+
 
     def __times(self):
         if not self["time"].empty:
