@@ -8,12 +8,12 @@ from datetime import datetime as dt
 class ECG:
 
     def __init__(self, data: str, name: str):
-        self.data, self.meta_data = self.read_ecg(data)
+        self.data, self.meta_data = self.__read_ecg(data)
         self.name = name
         self.x = [xx for xx in range(0, len(self.data))]
         self.y = self.data
 
-    def read_ecg(self, ecg: str) -> Tuple[pd.DataFrame, pd.DataFrame]:
+    def __read_ecg(self, ecg: str) -> Tuple[pd.DataFrame, pd.DataFrame]:
         data = ecg.split("\n")
         m_data = data[:12]
         meta_data = {}
