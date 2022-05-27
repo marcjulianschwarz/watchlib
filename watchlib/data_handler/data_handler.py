@@ -7,7 +7,10 @@ from watchlib.utils import ECG, WorkoutRoute
 from abc import ABC
 from multiprocessing import Pool
 import json
+import numpy as np
+import logging
 
+logging.basicConfig(level=logging.INFO, filename="watchlib.log", filemode="w", format="%(asctime)s - %(levelname)s - %(message)s")
 
 class DataManager(ABC):
 
@@ -60,7 +63,7 @@ class DataLoader(DataManager):
             for record in records:
                 data[record.get("type")] = []
 
-            print(f"[Data Loader]\t\tLoading {len(data)} health dataframes...")
+            logging.info(f"[Data Loader] Loading {len(data)} health dataframes")
 
             for record in records:
                 key = record.get("type")
@@ -76,9 +79,8 @@ class DataLoader(DataManager):
 
             return data
         else:
-            print("[ERROR] the health data path (Export.xml) doesnt exist.")
+            logging.error("The health data path (Export.xml) doesnt exist")
             return {}
-            
 
     # ----------
     # ECG
@@ -91,10 +93,10 @@ class DataLoader(DataManager):
     def load_ecgs(self) -> List[ECG]:
         if self.supports("ecg"):
             filenames = self.get_filenames_for(self.ecg_path)
-            print(f"[Data Loader]\t\tLoading {len(filenames)} electrocardiograms...")
+            logging.info(f"[Data Loader]\t\tLoading {len(filenames)} ECGs")
             return [self.load_ecg(filename) for filename in filenames]
         else:
-            print("[ERROR] the ecg path doesnt exist.")
+            logging.error("The ecg path doesnt exist")
             return []
 
     # ----------
@@ -109,7 +111,7 @@ class DataLoader(DataManager):
 
     def load_routes(self, parallel=True) -> List[WorkoutRoute]:
         if not self.supports("routes"):
-            print("[ERROR] the workout-routes path doesnt exist.")
+            logging.error("The workout routes path doesnt exist")
         else:
             if parallel:
                 return self.load_routes_par()    
@@ -172,15 +174,15 @@ class CacheHandler(DataManager):
 
     # Delete individual caches
     def delete_health_data_cache(self, name: str):
-        print(f"[Cache Handler]\t\tDELETE {name}")
+        logging.info("[Cache Handler] DELETE " + name)
         os.remove(os.path.join(self.cached_export_data_path, name))
 
     def delete_route_cache(self, name: str):
-        print(f"[Cache Handler]\t\tDELETE {name}")
+        logging.info("[Cache Handler] DELETE " + name)
         os.remove(os.path.join(self.cached_routes_path, name))
 
     def delete_animation_cache(self, name: str):
-        print(f"[Cache Handler]\t\tDELETE {name}")
+        logging.info("[Cache Handler] DELETE " + name)
         os.remove(os.path.join(self.cached_route_animations_path, name))
 
     def isCached(self, data: str) -> bool:
@@ -201,7 +203,7 @@ class CacheHandler(DataManager):
 
     def cache_routes(self, routes: List[WorkoutRoute]):
         self.__check_folders()
-        print(f"[Cache Handler]\t\tCaching {len(routes)} routes...")
+        logging.info(f"[Cache Handler] Caching {len(routes)} routes" )
         for route in routes:
             self.__cache_route(route)
 
@@ -270,7 +272,7 @@ class CacheHandler(DataManager):
                 data[id] = self.load_health_data_by_key(filename)
             return data
         else:
-            print("[ERROR]\t\tExport data hasnt been cached yet.")
+            logging.error("Health data hasnt been cached yet")
             return {}
 
     def is_health_data_cached(self):
@@ -335,3 +337,41 @@ class HealthDataHandler(DataManager):
 
         return pd.concat(grouped_dfs, axis=1)
 
+    def drop_outliers(self, data, method, threshold):
+
+        if isinstance(data, pd.DataFrame):
+            cleaned = pd.DataFrame()
+            for col in data.columns:
+                if data[col].dtype == float:
+                    cleaned[col] = self.drop_outliers(data[col], method, threshold)
+                else:
+                    cleaned[col] = data[col]
+            return cleaned
+        else:
+            if method == "iqr":
+                iqr = data.quantile(0.75) - data.quantile(0.25)
+                return data[(data >= data.quantile(0.25) - threshold * iqr) & (data <= data.quantile(0.75) + threshold * iqr)]
+            if method == "z-score":
+                m = data.mean()
+                s = data.std()
+                return data[(data - m)/s < threshold]
+
+    def impute(self, data: pd.DataFrame, columns: List[str], method, inplace=False):
+        if not inplace:
+            data = data.copy()
+        
+        for column in columns:
+            data[column].fillna(method(data[column]), inplace=True)
+        
+        if not inplace:
+            return data
+
+    def impute_row_wise(self, data: pd.DataFrame, columns: List[str], method, inplace=False):
+        if not inplace:
+            data = data.copy()
+
+        for column in columns:
+            data[column] = data[column].apply(lambda x: method(data[column]))
+
+        if not inplace:
+            return data 
