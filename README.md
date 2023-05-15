@@ -1,3 +1,7 @@
+> **Important:** This package is now deprecated. See [watchml](https://github.com/marcjulianschwarz/watchml) for a newer and better version of watchlib. 
+
+
+
 <p align="center">
 <img width="500" alt="watchlib_transparent" src="https://user-images.githubusercontent.com/67844154/158648757-83252bda-ff7c-4d1d-9d79-df7ca79138d7.png">    
 </p>
