@@ -1,0 +1,42 @@
+.list {
+  width: 50%;
+  padding: 10px;
+
+  .list-header {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+
+  .list-body {
+    display: flex;
+    flex-direction: column;
+
+    .list-item {
+      display: flex;
+      flex-direction: row;
+      justify-content: space-between;
+      font-size: 14px;
+
+      background-color: white;
+      border-color: lightgray;
+      border-width: 1px;
+      border-style: solid;
+      border-radius: 2px;
+
+      margin-bottom: 2px;
+      padding: 3px;
+
+      cursor: pointer;
+
+      &.selected {
+        background-color: lightgreen;
+      }
+
+      &:hover {
+        background-color: rgb(190, 237, 190);
+      }
+    }
+  }
+}

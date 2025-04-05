@@ -1,0 +1,34 @@
+.list {
+  width: 50%;
+  padding: 10px;
+}
+.list .list-header {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.list .list-body {
+  display: flex;
+  flex-direction: column;
+}
+.list .list-body .list-item {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  font-size: 14px;
+  background-color: white;
+  border-color: lightgray;
+  border-width: 1px;
+  border-style: solid;
+  border-radius: 2px;
+  margin-bottom: 2px;
+  padding: 3px;
+  cursor: pointer;
+}
+.list .list-body .list-item.selected {
+  background-color: lightgreen;
+}
+.list .list-body .list-item:hover {
+  background-color: #beedbe;
+}
