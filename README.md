@@ -1,4 +1,4 @@
-> **Important:** This package is now deprecated. See [watchml](https://github.com/marcjulianschwarz/watchml) for a newer and better version of watchlib. 
+> ⚠️**Important:** This package is no longer actively maintained.⚠️
 
 
 
