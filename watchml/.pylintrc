@@ -1,0 +1,12 @@
+[MASTER]
+disable=
+    C0114, # missing-module-docstring
+    C0115, # missing-class-docstring
+    C0116, # missing-function-docstring
+    C0103, # invalid-name
+    W1514, # unspecified-encoding
+    R0903, # too-few-public-methods
+    C0415, # import-outside-toplevel
+    C0301, # line-too-long (already handled by black, ignore comment line length)
+    R0914, # too-many-locals (sometimes needed for readability)
+    W1203, # logging-fstring-interpolation
